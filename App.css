@@ -718,3 +718,21 @@ body{background:#f5faf6;color:#17372a}
 .app .offer-card .offer-reject{background:#fff0ed!important;color:#c94e45!important}
 .app .toast{border-left-color:var(--coral);color:#075c38}
 .app button:focus-visible,.app a:focus-visible,.app input:focus-visible,.app textarea:focus-visible{outline-color:var(--coral)}
+
+
+/* Strong coral action gradient and less visual noise on ride request cards */
+:root{--coral:#f04438;--coral-dark:#d9362d;--coral-soft:#fff0ed}
+.app .ride-request-group{background:linear-gradient(145deg,#f0f8f2 0%,#eaf5ed 100%);border:0;border-radius:20px;padding:clamp(15px,3.5vw,21px);box-shadow:0 3px 14px rgba(8,85,51,.055);margin:14px 0}
+.app .ride-request-group+.ride-request-group{border-top:0}
+.app .ride-request-group h2{color:#174c35}
+.app .ride-request .ride-location{background:rgba(255,255,255,.76);border:1px solid #dcebe0;border-radius:15px}
+.app .ride-request .ride-request-choice{border:0;border-radius:14px;background:rgba(255,255,255,.7);padding:14px;margin:12px 0}
+.app .ride-request>button[type="submit"],.app .welcome-card button,.app .offer-actions button:first-child{background:linear-gradient(115deg,#ff6b5d,#e93632)!important;color:#fff!important;box-shadow:0 7px 18px #e9363228}
+.app .ride-map-toggle{background:#e0f2e6!important;color:#075c38!important;border-color:#c9e3d1!important}
+.app .ride-points-status span{border:0;background:rgba(255,255,255,.8)}
+.app .ride-points-status span.is-set{background:#dff3e5;color:#075c38}
+.app .ride-map-instructions{border:0;background:#dff1e5}
+.app .ride-map-frame{border:2px solid #cce4d3}
+.app .offer-card{background:linear-gradient(145deg,#f0f8f2,#eaf5ed);border:0;box-shadow:0 3px 14px rgba(8,85,51,.055)}
+.app .offer-actions .offer-reject{background:#fff0ed!important;color:#c53b32!important}
+.app .bottom-nav{border-top:0;box-shadow:0 -5px 20px #174c3510}
