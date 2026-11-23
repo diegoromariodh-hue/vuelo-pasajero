@@ -81,6 +81,7 @@ export default function App() {
 
   const [switchingMode, setSwitchingMode] = useState(false);
   const [handoffError, setHandoffError] = useState("");
+  const [handoffAttempted, setHandoffAttempted] = useState(false);
 
   async function switchMode() {
     if (switchingMode) return;
@@ -110,6 +111,7 @@ export default function App() {
     const query = new URLSearchParams(window.location.search);
     const code = query.get("vuelo_handoff");
     if (!code) return;
+    setHandoffAttempted(true);
     window.history.replaceState({}, "", window.location.pathname);
     try {
       const res = await fetch(import.meta.env.VITE_SUPABASE_URL + "/functions/v1/vuelo-mode-handoff", {
@@ -121,6 +123,7 @@ export default function App() {
       if (!res.ok || !payload.token_hash) throw new Error(payload.error || "No se pudo recuperar la sesión.");
       const { error } = await supabase.auth.verifyOtp({ token_hash: payload.token_hash, type: "magiclink" });
       if (error) throw error;
+      setHandoffError("");
     } catch (error) {
       setHandoffError(error.message || "El cambio de modo falló. Podés iniciar sesión normalmente.");
     }
@@ -197,6 +200,8 @@ export default function App() {
   if (loading) return <Loading />;
 
   if (view === "reset-password") return <ResetPasswordScreen />;
+
+  if (!session && handoffAttempted && handoffError) return <div className="center-screen"><div className="blocked-card" style={{maxWidth:420,padding:24,margin:"24px auto",textAlign:"center"}}><h2>No se pudo cambiar de modo</h2><p role="alert">{handoffError}</p><p>Tu sesión de la otra aplicación no se ha modificado.</p><button type="button" onClick={() => window.location.assign("https://conductor.vuelonicaragua.online/")}>Regresar al modo anterior</button><button type="button" onClick={() => {setHandoffAttempted(false);setHandoffError("");}}>Iniciar sesión aquí</button></div></div>;
 
   if (!session) return <AuthScreen />;
 
