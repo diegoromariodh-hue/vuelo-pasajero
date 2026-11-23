@@ -630,3 +630,42 @@ body{background:#f4fcf7}
 .app .bottom-nav{background:#fff!important;border-top:1px solid #d8eddf!important}
 .app .bottom-nav button.active{background:#e4f9ed!important;color:#087c50!important}
 @media(max-width:560px){.app>.vuelo-mode-switch{margin:10px 12px 14px}}
+
+
+/* Passenger UX refresh — compact hierarchy and motion with no JS animation library */
+.app .page{width:min(760px,calc(100% - 28px));margin:14px auto 22px}
+.app .welcome-card{padding:clamp(20px,4vw,28px);border-radius:24px;box-shadow:0 12px 28px #075b3620}
+.app .welcome-card h1{font-size:clamp(1.65rem,5.5vw,2.35rem);line-height:1.12;letter-spacing:-.045em;margin:10px 0}
+.app .welcome-card p{font-size:clamp(.92rem,3.5vw,1rem);line-height:1.48;max-width:38ch;margin:8px 0 0}
+.app .welcome-card button{min-height:50px;border-radius:14px;margin-top:18px}
+.app .section-title{margin-bottom:14px}
+.app .section-title h1{font-size:clamp(1.45rem,5vw,2rem);line-height:1.16;letter-spacing:-.035em}
+.app .section-title p{line-height:1.5;font-size:.92rem;max-width:58ch}
+.app .emergency-card,.app .share-card,.app .commission-card,.app .community-card,.app .ad-card,.app .ad-placeholder,.app .install-card,.app .info-card,.app .offer-card,.app .empty-card,.app .history-item-card,.app .profile-card{border-radius:18px;padding:clamp(15px,3.5vw,20px);box-shadow:0 3px 12px #0b51300b}
+.app .emergency-card h3,.app .share-card h3,.app .community-card h3,.app .ad-card h3,.app .info-card h3{font-size:1.02rem;line-height:1.3;margin-top:0}
+.app .emergency-card p,.app .share-card p,.app .commission-card p,.app .info-card p,.app .ad-card p{font-size:.9rem;line-height:1.5}
+.app .quick-grid{gap:10px}
+.app .quick-grid .info-card{min-width:0}
+.app .ride-form.ride-request{gap:14px}
+.app .ride-request-group{border-radius:16px;padding:clamp(13px,3vw,18px)}
+.app .ride-request-group h2{font-size:1.08rem;line-height:1.3;margin-top:0}
+.app .ride-request-group p,.app .ride-field-hint{line-height:1.45;font-size:.88rem}
+.app .ride-request button,.app .offer-actions button,.app .welcome-card button{transition:transform 160ms ease,background-color 160ms ease,box-shadow 160ms ease}
+.app button:active{transform:scale(.985)}
+.app button:focus-visible,.app a:focus-visible,.app input:focus-visible,.app textarea:focus-visible{outline:3px solid #148c60;outline-offset:3px}
+.app .welcome-card,.app .ride-request-group,.app .offer-card{animation:vuelo-soft-appear 240ms ease-out both}
+@keyframes vuelo-soft-appear{from{opacity:.75;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:560px){
+ .app .page{width:calc(100% - 24px);margin:12px auto 18px}
+ .app .welcome-card{padding:20px;border-radius:22px}
+ .app .welcome-card h1{font-size:clamp(1.65rem,7vw,2rem)}
+ .app .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app .emergency-card,.app .share-card,.app .commission-card,.app .community-card,.app .ad-card,.app .ad-placeholder,.app .info-card{padding:15px}
+ .app .ride-request .ride-request-options button{min-height:44px}
+ .app .bottom-nav button{font-size:.72rem}
+}
+@media(prefers-reduced-motion:reduce){
+ .app .welcome-card,.app .ride-request-group,.app .offer-card{animation:none}
+ .app .ride-request button,.app .offer-actions button,.app .welcome-card button{transition:none}
+ .app button:active{transform:none}
+}
