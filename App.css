@@ -782,3 +782,30 @@ body{background:#f5faf6;color:#17372a}
 .app .profile-help-note{display:flex;align-items:flex-start;gap:9px;margin:12px 2px;color:#607368;font-size:.78rem;line-height:1.45}
 .app .profile-help-note svg{flex:0 0 auto;color:#087a4b}
 @media(max-width:560px){.app .profile-section{padding:14px}.app .profile-detail-row{align-items:flex-start}.app .profile-detail-row strong{max-width:58%}}
+
+
+/* Guided passenger trip wizard */
+.app .ride-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;padding:12px 10px;margin:0 0 15px;background:#edf7f0;border:1px solid #dcebe0;border-radius:16px}
+.app .ride-progress-step{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;white-space:nowrap;opacity:.58}
+.app .ride-progress-step span{width:27px;height:27px;flex:0 0 27px;display:grid;place-items:center;border-radius:50%;background:#d8e8dd;color:#426452;font-size:.76rem;font-weight:900}
+.app .ride-progress-step b{font-size:.76rem;color:#315a43}
+.app .ride-progress-step.current{opacity:1}
+.app .ride-progress-step.current span,.app .ride-progress-step.complete span{background:linear-gradient(120deg,#ff7668,#e93632);color:#fff}
+.app .ride-progress-step.current b,.app .ride-progress-step.complete b{color:#075c38}
+.app .ride-request.ride-form{display:flex;flex-direction:column;gap:12px}
+.app .ride-request-group{width:100%;margin:0;padding:clamp(16px,4vw,22px);background:linear-gradient(145deg,#f0f8f2,#e8f4eb);border:1px solid #dfede3;border-radius:20px;box-shadow:0 4px 16px rgba(8,85,51,.05);animation:ride-step-in .18s ease-out both}
+.app .ride-request-group h2{font-size:clamp(1.12rem,4vw,1.35rem);line-height:1.3;color:#174c35;margin:0 0 7px}
+.app .ride-request-group>p{font-size:.88rem;line-height:1.5;color:#607368;margin:0 0 14px}
+.app .ride-wizard-actions{display:flex;gap:10px;position:sticky;bottom:calc(72px + env(safe-area-inset-bottom));z-index:8;padding:10px 0 4px;background:linear-gradient(180deg,transparent,#f5faf6 18%)}
+.app .ride-wizard-actions button{min-height:51px;border-radius:14px;font-size:.95rem;font-weight:850}
+.app .ride-wizard-actions .ride-wizard-next,.app .ride-wizard-actions button[type="submit"]{flex:1;background:linear-gradient(115deg,#ff6b5d,#e93632);color:#fff;box-shadow:0 7px 18px #e9363228}
+.app .ride-wizard-actions .ride-wizard-back{flex:0 0 108px;background:#fff;color:#087a4b;border:1px solid #cfe3d5}
+.app .ride-review-list{display:grid;gap:0;margin-top:12px;background:rgba(255,255,255,.8);border-radius:15px;padding:4px 14px}
+.app .ride-review-list>div{display:grid;gap:4px;padding:12px 0;border-bottom:1px solid #e5eee8}
+.app .ride-review-list>div:last-child{border-bottom:0}
+.app .ride-review-list small{font-size:.76rem;color:#668071}
+.app .ride-review-list strong{font-size:.9rem;line-height:1.4;color:#17372a;overflow-wrap:anywhere}
+.app .ride-review-list .ride-review-price{font-size:1.2rem;color:#e04439}
+@keyframes ride-step-in{from{opacity:.65;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:420px){.app .ride-progress{gap:3px;padding:10px 6px}.app .ride-progress-step{flex-direction:column;gap:3px}.app .ride-progress-step b{font-size:.68rem}.app .ride-progress-step span{width:25px;height:25px;flex-basis:25px}.app .ride-wizard-actions .ride-wizard-back{flex-basis:88px}}
+@media(prefers-reduced-motion:reduce){.app .ride-request-group{animation:none}}
