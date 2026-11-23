@@ -810,19 +810,8 @@ function RequestRide({ profile, notify, onCreated }) {
     );
   }, [form.pickup_address, form.destination_address, form.pickup_lat]);
 
-  const isOmetepe = useMemo(() => {
-    if (!hasLocationInput) return true;
-
-    const text = `${form.pickup_address} ${form.destination_address}`.toLowerCase();
-    const allowed = [
-      "ometepe", "altagracia", "moyogalpa", "balgüe", "bague", "ojo de agua",
-      "charco verde", "santo domingo", "san ramón", "san ramon", "mérida", "merida",
-      "santa cruz", "punta jesús maría", "punta jesus maria", "urbaite", "tilgüe", "tilgue",
-      "madroñal", "madronal", "los ángeles", "los angeles", "sintiope", "la flor", "san jose"
-    ];
-
-    return allowed.some(place => text.includes(place)) || (form.pickup_lat && form.pickup_lng);
-  }, [hasLocationInput, form.pickup_address, form.destination_address, form.pickup_lat, form.pickup_lng]);
+  const isOmetepe = ["Altagracia", "Moyogalpa"].includes(form.pickup_municipality)
+    && ["Altagracia", "Moyogalpa"].includes(form.destination_municipality);
 
   function setField(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -838,7 +827,17 @@ function RequestRide({ profile, notify, onCreated }) {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
+        const { data: covered, error } = await supabase.rpc("vuelo_in_ometepe", {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        if (error || !covered) {
+          setForm((prev) => ({ ...prev, pickup_lat: null, pickup_lng: null }));
+          setGettingGps(false);
+          notify(error ? "No pudimos verificar el GPS. Podés indicar una dirección en Ometepe." : "Este punto GPS está fuera de Ometepe. Indicá una dirección dentro de la isla.");
+          return;
+        }
         setForm((prev) => ({
           ...prev,
           pickup_lat: pos.coords.latitude,
@@ -900,6 +899,8 @@ function RequestRide({ profile, notify, onCreated }) {
 
   async function submit(e) {
     e.preventDefault();
+
+    if (gettingGps) return;
 
     if (!hasLocationInput || !isOmetepe) {
       alert("Lo sentimos. Aún no contamos con conductores disponibles en esta zona. Gracias por confiar en Vuelo. Estamos construyendo esta plataforma junto a nuestra comunidad para llegar cada vez a más personas.");
@@ -1009,6 +1010,7 @@ function RequestRide({ profile, notify, onCreated }) {
           </div>
         )}
 
+        <p>Viajes dentro de Ometepe. <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></p>
         <label>Municipio de recogida</label>
         <select
           value={form.pickup_municipality}
@@ -1049,7 +1051,7 @@ function RequestRide({ profile, notify, onCreated }) {
         <input
           value={form.destination_address}
           onChange={(e) => setField("destination_address", e.target.value)}
-          placeholder="Ej: Moyogalpa, de Cherrys Discotec 20 metros oeste..."
+          placeholder="Ej: Del parque de Moyogalpa, 20 metros al oeste..."
           required
         />
 
@@ -1153,7 +1155,7 @@ function RequestRide({ profile, notify, onCreated }) {
           </div>
         )}
 
-        <button disabled={sending || !canSubmit}>
+        <button disabled={sending || gettingGps || !canSubmit}>
           {sending ? "Buscando conductores..." : "Buscar conductor"}
         </button>
       </form>
