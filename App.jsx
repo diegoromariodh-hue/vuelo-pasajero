@@ -1469,10 +1469,10 @@ function RequestRide({ profile, notify, onCreated }) {
           <div className="ride-request-options">
             <button type="button" className="ride-map-toggle" onClick={() => setShowMap(!showMap)}
               aria-expanded={showMap} aria-controls="ride-point-picker" disabled={checkingPoint || gettingGps}>
-              {showMap ? "Ocultar mapa" : hasPickupPoint || hasDestinationPoint ? "Ver o editar puntos" : "Marcar en el mapa"}
+              {showMap ? "Ocultar mapa" : hasPickupPoint || hasDestinationPoint ? "Ver o cambiar en el mapa" : "Abrir mapa y marcar puntos"}
             </button>
             <button type="button" className="ride-secondary" onClick={useGPS} disabled={gettingGps || checkingPoint}>
-              <Navigation size={17} aria-hidden="true" /> {gettingGps ? "Buscando tu ubicación…" : "Usar mi ubicación"}
+              <Navigation size={17} aria-hidden="true" /> {gettingGps ? "Ubicándote…" : "Estoy aquí (GPS)"}
             </button>
           </div>
 
@@ -1492,7 +1492,7 @@ function RequestRide({ profile, notify, onCreated }) {
         </section>
 
         <section className="ride-request-group" aria-labelledby="ride-details-heading">
-          <h2 id="ride-details-heading">¿Cuándo y cómo viajás?</h2>
+          <div className="ride-step-heading"><span>2</span><div><h2 id="ride-details-heading">¿Cuándo y cómo viajás?</h2><p>Elegí el momento y el tipo de transporte.</p></div></div>
           <fieldset className="ride-request-choice">
             <legend>¿Cuándo salís?</legend>
             <div className="ride-request-options">
@@ -1526,7 +1526,7 @@ function RequestRide({ profile, notify, onCreated }) {
         </section>
 
         <section className="ride-request-group" aria-labelledby="ride-price-heading">
-          <h2 id="ride-price-heading">Precio propuesto</h2>
+          <div className="ride-step-heading"><span>3</span><div><h2 id="ride-price-heading">¿Cuánto querés ofrecer?</h2><p>El precio se acuerda entre vos y el conductor.</p></div></div>
           <label htmlFor="ride-price">¿Cuánto ofrecés? (C$)</label>
           <input id="ride-price" type="number" min="1" step="0.01" inputMode="decimal" value={form.passenger_offer}
             aria-describedby="ride-price-hint" onChange={(event) => setField("passenger_offer", event.target.value)}
@@ -1560,7 +1560,7 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
       setMapError(true);
       return;
     }
-    const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView([11.50, -85.58], 12);
+    const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView([11.50, -85.98], 11);
     leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(instance);
@@ -1604,13 +1604,13 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
       <button type="button" className="ride-secondary" aria-pressed={target === "destination"}
         disabled={disabled} onClick={() => { setTarget("destination"); setCandidate(null); }}><span className="ride-point-letter" data-point="B">B</span> Destino{destination_lat != null ? " ✓" : ""}</button>
     </div>
-    <p className="ride-field-hint">{target === "pickup" ? "Marcá dónde te recogen." : "Marcá adónde vas."} Tocá el mapa o mové la mira.</p>
+    <div className="ride-map-instructions"><strong>{target === "pickup" ? "Marcá tu punto de recogida" : "Marcá tu destino"}</strong><span>{target === "pickup" ? "Mové el mapa hasta el lugar exacto donde te esperamos." : "Mové el mapa hasta el lugar al que querés llegar."} Después tocá “Guardar punto”.</span></div>
     <div className="ride-map-frame">
       <div className="ride-map-canvas" ref={host} aria-label="Mapa de Ometepe" />
       {!candidate && <span className="ride-map-crosshair" aria-hidden="true">+</span>}
     </div>
     <button type="button" onClick={confirmPoint} disabled={disabled}>
-      {disabled ? "Validando…" : (candidate ? "Guardar " : "Usar el centro como ") + (target === "pickup" ? "punto A" : "punto B")}
+      {disabled ? "Validando ubicación…" : "Guardar " + (target === "pickup" ? "punto A · Recogida" : "punto B · Destino")}
     </button>
     {(target === "pickup" ? pickup_lat != null : destination_lat != null) &&
       <button type="button" className="ride-secondary ride-clear-point" disabled={disabled} onClick={() => { clearPoint(target); setCandidate(null); }}>Quitar {target === "pickup" ? "punto A" : "punto B"}</button>}
