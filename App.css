@@ -424,3 +424,157 @@
   opacity:.55;
   cursor:not-allowed;
 }
+
+/* Shared mobile layout and interaction styles */
+:root {
+  --green-dark: #067451;
+  --nav-height: 64px;
+}
+
+.app {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 18px);
+}
+
+.topbar {
+  height: calc(60px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left));
+}
+
+.bottom-nav {
+  min-height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  height: auto;
+  padding: 5px max(5px, env(safe-area-inset-right)) calc(5px + env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-left));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.bottom-nav button {
+  min-height: 48px;
+  padding: 4px 2px;
+  border-radius: 12px;
+  font-size: .72rem;
+}
+
+.bottom-nav button.active {
+  background: var(--green-soft);
+}
+
+.icon-btn,
+.install-close,
+.terms-close {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible, summary:focus-visible {
+  outline: 2px solid #067451;
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.page, .offer-card, .request-card, .active-ride-card, .history-item, .profile-card {
+  overflow-wrap: anywhere;
+}
+
+.section-title h1 {
+  font-size: clamp(1.65rem, 5vw, 2.2rem);
+  line-height: 1.15;
+}
+
+.toast {
+  top: calc(12px + env(safe-area-inset-top));
+}
+
+.welcome-card {
+  background: linear-gradient(135deg, #067451, #065f46);
+}
+
+.rating-stars {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.rating-stars button {
+  min-height: 44px;
+  padding: 4px;
+}
+
+.rating-stars .star-selected {
+  color: #92400e;
+}
+
+.share-card button, .send-rating-btn, .install-actions button:first-child {
+  background: var(--green-dark);
+}
+
+@media (max-width: 560px) {
+  .page {
+    width: calc(100% - 24px);
+    margin-block: 14px;
+  }
+
+  .welcome-card, .auth-card, .ride-form, .request-card, .offer-card,
+  .active-ride-card, .history-item-card, .info-card, .profile-card, .install-card {
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .auth-card input, .ride-form input, .ride-form select, .ride-form textarea,
+  .request-card input, .request-card select, .request-card textarea {
+    font-size: 1rem;
+  }
+
+  .welcome-card h1 {
+    font-size: clamp(1.75rem, 7vw, 2.1rem);
+    line-height: 1.05;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation: none; }
+}
+
+.auth-card button:not(.link-btn, .terms-link), .ride-form button,
+.offer-card button, .terms-accept-btn {
+  background: var(--green-dark);
+}
+
+.offer-card {
+  margin-top: 0;
+}
+
+.offer-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.offer-card .offer-actions button {
+  width: 100%;
+  margin: 0;
+}
+
+.offer-card .offer-actions .offer-reject {
+  background: #fff;
+  color: var(--green-dark);
+  border: 1px solid #a9d4c3;
+}
+
+.active-ride-card .ride-status-badge.status-searching,
+.active-ride-card .ride-status-badge.status-negotiating {
+  color: #075985;
+}
+
+@media (max-width: 560px) {
+  .transport-toggle {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .offer-actions {
+    margin-top: 12px;
+  }
+}

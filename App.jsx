@@ -167,7 +167,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {toast && <div className="toast">✅ {toast}</div>}
+      {toast && <div className="toast" role="status">✅ {toast}</div>}
 
       <header className="topbar">
         <div className="brand">
@@ -208,20 +208,20 @@ export default function App() {
         {view === "profile" && <Profile profile={profile} />}
       </main>
 
-      <nav className="bottom-nav">
-        <button className={view === "home" ? "active" : ""} onClick={() => setView("home")}>
+      <nav className="bottom-nav" aria-label="Navegación de pasajero">
+        <button className={view === "home" ? "active" : ""} aria-current={view === "home" ? "page" : undefined} onClick={() => setView("home")}>
           <MapPin size={20} /> Inicio
         </button>
-        <button className={view === "request" ? "active" : ""} onClick={() => setView("request")}>
+        <button className={view === "request" ? "active" : ""} aria-current={view === "request" ? "page" : undefined} onClick={() => setView("request")}>
           <Navigation size={20} /> Viaje
         </button>
-        <button className={view === "offers" ? "active" : ""} onClick={() => setView("offers")}>
+        <button className={view === "offers" ? "active" : ""} aria-current={view === "offers" ? "page" : undefined} onClick={() => setView("offers")}>
           <Wallet size={20} /> Ofertas
         </button>
-        <button className={view === "history" ? "active" : ""} onClick={() => setView("history")}>
+        <button className={view === "history" ? "active" : ""} aria-current={view === "history" ? "page" : undefined} onClick={() => setView("history")}>
           <Clock size={20} /> Historial
         </button>
-        <button className={view === "profile" ? "active" : ""} onClick={() => setView("profile")}>
+        <button className={view === "profile" ? "active" : ""} aria-current={view === "profile" ? "page" : undefined} onClick={() => setView("profile")}>
           <User size={20} /> Perfil
         </button>
       </nav>
@@ -1436,9 +1436,9 @@ function Offers({ notify }) {
               </div>
 
               {selectedRide && ["searching", "negotiating"].includes(selectedRide.status) && offer.status === "pending" && (
-                <div>
+                <div className="offer-actions">
                   <button onClick={() => confirmOffer(offer)}>Aceptar C${offer.amount}</button>
-                  <button onClick={() => rejectOffer(offer)}>Rechazar oferta</button>
+                  <button className="offer-reject" onClick={() => rejectOffer(offer)}>Rechazar oferta</button>
                 </div>
               )}
             </div>
