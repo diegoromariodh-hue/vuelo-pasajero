@@ -183,6 +183,7 @@ export default function App() {
         </button>
       </header>
 
+      <div style={{padding:"8px 16px",textAlign:"right"}}><a href="https://conductor.vuelonicaragua.online/" style={{fontWeight:700,color:"inherit"}}>Modo conductor ↗</a></div>
       <PostRideSurvey key={session.user.id} userId={session.user.id} notify={notify} />
 
       <main>
