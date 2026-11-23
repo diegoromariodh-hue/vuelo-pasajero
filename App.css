@@ -749,3 +749,36 @@ body{background:#f5faf6;color:#17372a}
 .app .ride-request-group:last-of-type{margin-bottom:14px}
 .app .ride-request-group .ride-step-heading{display:none}
 @media(max-width:380px){.app .ride-progress{gap:5px;padding:10px}.app .ride-progress-step{gap:5px}.app .ride-progress-step b{font-size:.72rem}.app .ride-progress>i{min-width:5px}}
+
+
+/* Passenger profile — clean account hub */
+.app .profile-page{max-width:680px;padding-bottom:24px}
+.app .profile-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:25px 18px 22px;border-radius:24px;background:linear-gradient(145deg,#e9f7ee,#dff1e5);border:1px solid #d5eadc;margin-bottom:16px}
+.app .profile-avatar-wrap{position:relative;width:94px;height:94px;margin-bottom:12px}
+.app .profile-avatar-wrap .profile-photo,.app .profile-avatar-wrap .avatar{width:94px;height:94px;border-radius:50%;object-fit:cover}
+.app .profile-avatar-wrap .avatar{display:grid;place-items:center;background:linear-gradient(135deg,#087a4b,#075c38);color:#fff;font-size:2rem;font-weight:850}
+.app .profile-avatar-edit{position:absolute;right:-2px;bottom:0;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#f04438;color:#fff;border:3px solid #e9f7ee;cursor:pointer}
+.app .profile-avatar-edit input,.app .profile-upload-wide input{display:none}
+.app .profile-hero h1{font-size:1.35rem;line-height:1.25;margin:0;color:#17372a}
+.app .profile-hero>p{font-size:.88rem;color:#607368;margin:5px 0 10px}
+.app .profile-role-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:#fff;color:#087a4b;font-size:.76rem;font-weight:800}
+.app .profile-section{background:#f0f8f2;border:1px solid #e0eee4;border-radius:20px;padding:17px;margin-bottom:14px}
+.app .profile-section h2{font-size:1rem;margin:0 0 12px;color:#174c35}
+.app .profile-details{display:grid;gap:0}
+.app .profile-detail-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid #dcebe0}
+.app .profile-detail-row:last-child{border-bottom:0}
+.app .profile-detail-row>span{display:flex;align-items:center;gap:8px;color:#607368;font-size:.84rem}
+.app .profile-detail-row>span svg{color:#087a4b}
+.app .profile-detail-row strong{font-size:.86rem;color:#17372a;text-align:right;overflow-wrap:anywhere}
+.app .profile-upload-wide{display:flex;justify-content:center;align-items:center;gap:8px;min-height:42px;margin-top:12px;border:1px solid #cfe5d6;border-radius:12px;background:#fff;color:#087a4b;font-size:.84rem;font-weight:800;cursor:pointer}
+.app .profile-driver-cta{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:15px;border:1px solid #f2b2aa;border-radius:18px;background:linear-gradient(115deg,#fff0ed,#ffe2dc);color:#a92f28;box-shadow:0 5px 16px #e9363210;cursor:pointer}
+.app .profile-driver-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(135deg,#ff7668,#e93632);color:#fff}
+.app .profile-driver-copy{display:grid;gap:3px;flex:1;min-width:0}
+.app .profile-driver-copy strong{font-size:.92rem;color:#9f3029}
+.app .profile-driver-copy small{font-size:.76rem;line-height:1.35;color:#87524d}
+.app .profile-driver-cta>svg{flex:0 0 auto}
+.app .profile-driver-cta:disabled{opacity:.65;cursor:wait}
+.app .profile-mode-error{margin-top:10px;padding:12px;border-radius:12px;background:#fff0ed;color:#a92f28;font-size:.86rem}
+.app .profile-help-note{display:flex;align-items:flex-start;gap:9px;margin:12px 2px;color:#607368;font-size:.78rem;line-height:1.45}
+.app .profile-help-note svg{flex:0 0 auto;color:#087a4b}
+@media(max-width:560px){.app .profile-section{padding:14px}.app .profile-detail-row{align-items:flex-start}.app .profile-detail-row strong{max-width:58%}}
