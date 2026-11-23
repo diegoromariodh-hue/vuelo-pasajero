@@ -531,6 +531,43 @@ function AuthScreen() {
   const [sending, setSending] = useState(false);
   const [existingAccount, setExistingAccount] = useState(false);
 
+  const [code, setCode] = useState("");
+  const [resendAfter, setResendAfter] = useState(0);
+  const [clock, setClock] = useState(Date.now());
+
+  useEffect(() => {
+    if (mode !== "verify") return;
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [mode]);
+
+  function showVerification(address, sent) {
+    setEmail(address);
+    setCode("");
+    setClock(Date.now());
+    setResendAfter(sent ? Date.now() + 60000 : 0);
+    setMode("verify");
+    setMsg(sent ? "Revisá tu correo, incluida la carpeta de spam." : "Ingresá el código que recibiste o solicitá uno nuevo.");
+  }
+
+  async function resendCode() {
+    if (sending || Date.now() < resendAfter) return;
+    setSending(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: new URL("/", window.location.origin).href },
+    });
+    setSending(false);
+    if (error) {
+      setMsg("No pudimos reenviar el código. Esperá un momento y volvé a intentar.");
+      return;
+    }
+    setClock(Date.now());
+    setResendAfter(Date.now() + 60000);
+    setMsg("Si tu cuenta está pendiente de confirmar, revisá tu correo para ver el nuevo código.");
+  }
+
   async function submit(e) {
     e.preventDefault();
     setSending(true);
@@ -539,7 +576,10 @@ function AuthScreen() {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    if (mode === "register") {
+    if (mode === "verify") {
+      const { error } = await supabase.auth.verifyOtp({ email: cleanEmail, token: code, type: "email" });
+      if (error) setMsg("El código es incorrecto o venció. Revisalo o pedí uno nuevo.");
+    } else if (mode === "register") {
       if (!acceptTerms) {
         setMsg("Debes aceptar los Términos y Condiciones para crear tu cuenta.");
         setSending(false);
@@ -579,7 +619,7 @@ function AuthScreen() {
       } else if (error) {
         setMsg("No pudimos crear tu cuenta. Volvé a intentar o contactá a soporte.");
       } else if (!data.session) {
-        setMsg("Revisá tu correo y la carpeta de spam. Si recibís un enlace de verificación, abrilo para continuar.");
+        showVerification(cleanEmail, true);
       }
     } else if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(
@@ -597,13 +637,40 @@ function AuthScreen() {
       if (error?.code === "invalid_credentials") {
         setMsg("El correo o la contraseña no coinciden. Si ya tenés una cuenta, podés recuperar tu contraseña.");
       } else if (error?.code === "email_not_confirmed") {
-        setMsg("Confirmá tu correo desde el enlace de verificación antes de entrar.");
+        showVerification(cleanEmail, false);
       } else if (error) {
         setMsg("No pudimos iniciar sesión. Volvé a intentar.");
       }
     }
 
     setSending(false);
+  }
+
+  if (mode === "verify") {
+    const seconds = Math.max(0, Math.ceil((resendAfter - clock) / 1000));
+    return (
+      <div className="auth-screen">
+        <form className="auth-card" onSubmit={submit}>
+          <img src={LOGO_URL} alt="Vuelo" />
+          <h1>Confirmá tu correo</h1>
+          <p>Ingresá el código de 6 dígitos enviado a <strong>{email}</strong>.</p>
+          {msg && <div className="message" role="status">{msg}</div>}
+          <label htmlFor="signup-code">Código de confirmación</label>
+          <input id="signup-code" value={code} inputMode="numeric" autoComplete="one-time-code"
+            maxLength={6} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+            required />
+          <button type="submit" disabled={sending || code.length !== 6}>
+            {sending ? "Procesando…" : "Confirmar correo"}
+          </button>
+          <button type="button" className="link-btn" disabled={sending || seconds > 0} onClick={resendCode}>
+            {seconds ? "Reenviar en " + seconds + " s" : "Reenviar código"}
+          </button>
+          <button type="button" className="link-btn" disabled={sending} onClick={() => { setMsg(""); setMode("login"); }}>
+            Volver a iniciar sesión
+          </button>
+        </form>
+      </div>
+    );
   }
 
   return (
