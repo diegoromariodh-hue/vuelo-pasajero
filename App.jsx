@@ -1761,7 +1761,7 @@ function Offers({ notify, userId }) {
     if (!driverIds?.length) return {};
 
     const { data } = await supabase
-      .from("driver_public_cards")
+      .from("driver_public_profiles")
       .select("*")
       .in("driver_id", driverIds);
 
@@ -1776,7 +1776,7 @@ function Offers({ notify, userId }) {
 
   async function loadConfirmedDriver(driverId) {
     const { data } = await supabase
-      .from("driver_public_cards")
+      .from("driver_public_profiles")
       .select("*")
       .eq("driver_id", driverId)
       .maybeSingle();
@@ -1923,13 +1923,12 @@ function Offers({ notify, userId }) {
               {confirmedDriver.avatar_url ? (
                 <img src={confirmedDriver.avatar_url} alt="Conductor" />
               ) : (
-                <div>{firstName(confirmedDriver.full_name)[0]}</div>
+                <div>{firstName(confirmedDriver.display_name)[0]}</div>
               )}
 
               <section>
-                <h3>{firstName(confirmedDriver.full_name)}</h3>
+                <h3>{firstName(confirmedDriver.display_name)}</h3>
                 <p>{confirmedDriver.vuelo_id || confirmedDriver.driver_code || "DRV-000000"} · ⭐ {confirmedDriver.rating || "5.00"}</p>
-                <p>Placa: <strong>{confirmedDriver.plate_number || "No registrada"}</strong></p>
                 <p>Color: <strong>{confirmedDriver.vehicle_color || "No registrado"}</strong></p>
                 <p>Vehículo: <strong>{[confirmedDriver.vehicle_brand, confirmedDriver.vehicle_model].filter(Boolean).join(" ") || "No registrado"}</strong></p>
               </section>
@@ -1960,12 +1959,12 @@ function Offers({ notify, userId }) {
                     {driver.avatar_url ? (
                       <img src={driver.avatar_url} alt="Conductor" />
                     ) : (
-                      <div>{firstName(driver.full_name)[0]}</div>
+                      <div>{firstName(driver.display_name)[0]}</div>
                     )}
                     <section>
-                      <strong>{firstName(driver.full_name)}</strong>
+                      <strong>{firstName(driver.display_name)}</strong>
                       <small>{driver.vuelo_id || driver.driver_code || "DRV-000000"} · ⭐ {driver.rating || "5.00"}</small>
-                      <small>Placa: {driver.plate_number || "No registrada"} · Color: {driver.vehicle_color || "No registrado"}</small>
+                      <small>Color: {driver.vehicle_color || "No registrado"} · Vehículo: {[driver.vehicle_brand, driver.vehicle_model].filter(Boolean).join(" ") || "No registrado"}</small>
                     </section>
                   </div>
                 )}
@@ -2142,7 +2141,7 @@ function History({ notify }) {
 
     if (driverIds.length) {
       const { data: cards } = await supabase
-        .from("driver_public_cards")
+        .from("driver_public_profiles")
         .select("*")
         .in("driver_id", driverIds);
 
@@ -2219,7 +2218,7 @@ function History({ notify }) {
 
               {driver && (
                 <p>
-                  Conductor: <strong>{firstName(driver.full_name)}</strong> · {driver.vuelo_id || driver.driver_code}
+                  Conductor: <strong>{firstName(driver.display_name)}</strong> · {driver.vuelo_id || driver.driver_code}
                 </p>
               )}
 
