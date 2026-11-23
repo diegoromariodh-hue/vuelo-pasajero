@@ -1746,7 +1746,7 @@ function Offers({ notify, userId }) {
       setLastRideStatus(data[0].status);
       setSelectedRide(data[0]);
       await loadOffers(data[0]);
-      if (data[0].driver_id) await loadConfirmedDriver(data[0].driver_id);
+      if (data[0].driver_id) await loadConfirmedDriver(data[0].driver_id, data[0].id);
       else setConfirmedDriver(null);
     } else {
       setSelectedRide(null);
@@ -1774,14 +1774,12 @@ function Offers({ notify, userId }) {
     return map;
   }
 
-  async function loadConfirmedDriver(driverId) {
-    const { data } = await supabase
-      .from("driver_public_profiles")
-      .select("*")
-      .eq("driver_id", driverId)
-      .maybeSingle();
-
-    setConfirmedDriver(data || null);
+  async function loadConfirmedDriver(driverId, rideId) {
+    const [{ data: driver }, { data: plate }] = await Promise.all([
+      supabase.from("driver_public_profiles").select("*").eq("driver_id", driverId).maybeSingle(),
+      supabase.rpc("vuelo_get_confirmed_driver_plate", { p_ride_id: rideId }),
+    ]);
+    setConfirmedDriver(driver ? { ...driver, plate_number: plate || null } : null);
   }
 
   async function loadOffers(ride) {
@@ -1930,6 +1928,7 @@ function Offers({ notify, userId }) {
                 <h3>{firstName(confirmedDriver.display_name)}</h3>
                 <p>{confirmedDriver.vuelo_id || confirmedDriver.driver_code || "DRV-000000"} · ⭐ {confirmedDriver.rating || "5.00"}</p>
                 <p>Color: <strong>{confirmedDriver.vehicle_color || "No registrado"}</strong></p>
+                {confirmedDriver.plate_number && <p>Placa: <strong>{confirmedDriver.plate_number}</strong></p>}
                 <p>Vehículo: <strong>{[confirmedDriver.vehicle_brand, confirmedDriver.vehicle_model].filter(Boolean).join(" ") || "No registrado"}</strong></p>
               </section>
             </div>
