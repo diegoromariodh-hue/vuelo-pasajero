@@ -1278,22 +1278,32 @@ function Offers({ notify }) {
     const confirmCancel = window.confirm("¿Deseas cancelar esta solicitud de viaje?");
     if (!confirmCancel) return;
 
-    const { error } = await supabase
+    const { data: cancelled, error } = await supabase
       .from("rides")
       .update({
         status: "cancelled",
         cancelled_at: new Date().toISOString(),
         cancellation_reason: "Cancelado por el pasajero antes de aceptar oferta",
       })
-      .eq("id", selectedRide.id);
+      .eq("id", selectedRide.id)
+      .in("status", ["searching", "negotiating"])
+      .select("id")
+      .maybeSingle();
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    notify("Solicitud cancelada.");
+    notify(cancelled ? "Solicitud cancelada." : "El viaje cambió. Revisá su estado actualizado.");
     loadMyRides();
+  }
+
+  async function rejectOffer(offer) {
+    const { error } = await supabase.from("ride_offers")
+      .update({ status: "rejected" }).eq("id", offer.id).eq("status", "pending");
+    if (error) notify(error.message);
+    await loadMyRides();
   }
 
   async function confirmOffer(offer) {
@@ -1421,10 +1431,11 @@ function Offers({ notify }) {
                 )}
               </div>
 
-              {selectedRide && !["confirmed", "driver_on_way", "driver_arrived", "in_progress"].includes(selectedRide.status) && (
-                <button onClick={() => confirmOffer(offer)}>
-                  Confirmar viaje
-                </button>
+              {selectedRide && ["searching", "negotiating"].includes(selectedRide.status) && offer.status === "pending" && (
+                <div>
+                  <button onClick={() => confirmOffer(offer)}>Aceptar C${offer.amount}</button>
+                  <button onClick={() => rejectOffer(offer)}>Rechazar oferta</button>
+                </div>
               )}
             </div>
           );
