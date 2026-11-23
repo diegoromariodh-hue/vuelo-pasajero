@@ -736,3 +736,16 @@ body{background:#f5faf6;color:#17372a}
 .app .offer-card{background:linear-gradient(145deg,#f0f8f2,#eaf5ed);border:0;box-shadow:0 3px 14px rgba(8,85,51,.055)}
 .app .offer-actions .offer-reject{background:#fff0ed!important;color:#c53b32!important}
 .app .bottom-nav{border-top:0;box-shadow:0 -5px 20px #174c3510}
+
+
+/* Cleaner trip-only workspace and clear three-step progress */
+.app .ride-progress{display:flex;align-items:center;gap:7px;width:100%;margin:0 0 16px;padding:12px 14px;background:linear-gradient(120deg,#e9f6ed,#f5faf6);border:1px solid #dcebe0;border-radius:16px}
+.app .ride-progress-step{display:flex;align-items:center;gap:7px;min-width:0;white-space:nowrap}
+.app .ride-progress-step span{display:grid;place-items:center;width:27px;height:27px;flex:0 0 27px;border-radius:50%;background:#087a4b;color:#fff;font-size:.78rem;font-weight:900}
+.app .ride-progress-step b{font-size:.78rem;color:#174c35;font-weight:800}
+.app .ride-progress>i{height:2px;flex:1;min-width:8px;background:linear-gradient(90deg,#087a4b,#f04438);border-radius:4px}
+.app .ride-form.ride-request{gap:12px}
+.app .ride-request-group{margin:0 0 12px}
+.app .ride-request-group:last-of-type{margin-bottom:14px}
+.app .ride-request-group .ride-step-heading{display:none}
+@media(max-width:380px){.app .ride-progress{gap:5px;padding:10px}.app .ride-progress-step{gap:5px}.app .ride-progress-step b{font-size:.72rem}.app .ride-progress>i{min-width:5px}}
