@@ -753,3 +753,78 @@ body{background:#f5faf6;color:#17372a}
 .app .ride-progress-step.current span{background:linear-gradient(120deg,#ff7668,#e93632);color:#fff;box-shadow:0 0 0 4px rgba(240,68,56,.12)}
 .app .ride-progress-step.current b{font-weight:900}
 @media(prefers-reduced-motion:reduce){.app .ride-progress{transition:none}}
+
+
+/* Refined compact progress indicator — inline, not floating */
+.app .ride-progress{
+  position:relative!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:4px!important;
+  width:100%!important;
+  margin:10px 0 18px!important;
+  padding:0 2px 8px!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  overflow:visible!important;
+}
+.app .ride-progress-step{
+  position:relative!important;
+  z-index:1!important;
+  display:flex!important;
+  flex:1 1 0!important;
+  min-width:0!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  opacity:1!important;
+  white-space:normal!important;
+  text-align:center!important;
+}
+.app .ride-progress-step span{
+  width:28px!important;
+  height:28px!important;
+  flex:0 0 28px!important;
+  display:grid!important;
+  place-items:center!important;
+  border:2px solid #d7e6dc!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  color:#829489!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  box-shadow:none!important;
+}
+.app .ride-progress-step b{
+  display:block!important;
+  max-width:100%!important;
+  overflow-wrap:anywhere!important;
+  color:#829489!important;
+  font-size:clamp(10px,2.8vw,12px)!important;
+  font-weight:650!important;
+  line-height:1.2!important;
+}
+.app .ride-progress-step.current span{
+  border-color:#e93632!important;
+  background:linear-gradient(135deg,#ff7668,#e93632)!important;
+  color:#fff!important;
+  box-shadow:0 0 0 3px #ffe3df!important;
+}
+.app .ride-progress-step.current b{color:#b7352d!important;font-weight:850!important}
+.app .ride-progress-step.complete span{
+  border-color:#087a4b!important;
+  background:#087a4b!important;
+  color:#fff!important;
+}
+.app .ride-progress-step.complete b{color:#087a4b!important;font-weight:750!important}
+@media(max-width:360px){
+  .app .ride-progress{gap:2px!important;margin:8px 0 14px!important}
+  .app .ride-progress-step span{width:25px!important;height:25px!important;flex-basis:25px!important}
+  .app .ride-progress-step b{font-size:9px!important}
+}
