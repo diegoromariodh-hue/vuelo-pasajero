@@ -28,7 +28,7 @@ import "./App.css";
 
 const LOGO_URL = logoVuelo;
 const SUPPORT_EMAIL = "soporte@vuelonicaragua.online";
-const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
+const APP_URL = "https://misviajes.vuelonicaragua.online/";
 
 const ACTIVE_RIDE_STATUSES = [
   "searching",
