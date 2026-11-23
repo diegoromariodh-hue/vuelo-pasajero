@@ -1406,7 +1406,7 @@ function RequestRide({ profile, notify, onCreated }) {
 
     if (gettingGps || checkingPoint) return;
 
-    if (!hasLocationInput || !isOmetepe) {
+    if ((!hasPickupPoint && !form.pickup_address.trim()) || (!hasDestinationPoint && !form.destination_address.trim()) || !isOmetepe) {
       alert("Lo sentimos. Aún no contamos con conductores disponibles en esta zona. Gracias por confiar en Vuelo. Estamos construyendo esta plataforma junto a nuestra comunidad para llegar cada vez a más personas.");
       return;
     }
