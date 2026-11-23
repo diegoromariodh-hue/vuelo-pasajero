@@ -240,11 +240,11 @@ export default function App() {
         </button>
       </header>
 
-      <div className="vuelo-mode-switch"><span className="vuelo-mode-current">Modo pasajero</span><button className="vuelo-mode-button" type="button" disabled={switchingMode} onClick={switchMode}>{switchingMode ? "Cambiando…" : "Cambiar a conductor →"}</button>{handoffError && <p className="vuelo-mode-error" role="alert">{handoffError}</p>}</div>
+      {view !== "request" && <div className="vuelo-mode-switch"><span className="vuelo-mode-current">Modo pasajero</span><button className="vuelo-mode-button" type="button" disabled={switchingMode} onClick={switchMode}>{switchingMode ? "Cambiando…" : "Cambiar a conductor →"}</button>{handoffError && <p className="vuelo-mode-error" role="alert">{handoffError}</p>}</div>}
       <PostRideSurvey key={session.user.id} userId={session.user.id} notify={notify} />
 
       <main>
-        <NotificationInbox key={session.user.id} userId={session.user.id} onNavigate={setView} />
+        {view !== "request" && <NotificationInbox key={session.user.id} userId={session.user.id} onNavigate={setView} />}
         {view === "home" && (
           <Home
             profile={profile}
@@ -260,7 +260,7 @@ export default function App() {
           <RequestRide
             profile={profile}
             notify={notify}
-            onCreated={() => setView("offers")}
+            onCreated={() => { setView("offers"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
           />
         )}
 
@@ -1488,6 +1488,13 @@ function RequestRide({ profile, notify, onCreated }) {
         <p>Indicá dónde te recogemos y adónde vas. Compartiremos la ubicación exacta con el conductor al confirmar.</p>
       </div>
 
+      <div className="ride-progress" aria-label="Pasos para solicitar un viaje">
+        <div className="ride-progress-step"><span>1</span><b>Ruta</b></div>
+        <i aria-hidden="true" />
+        <div className="ride-progress-step"><span>2</span><b>Viaje</b></div>
+        <i aria-hidden="true" />
+        <div className="ride-progress-step"><span>3</span><b>Precio</b></div>
+      </div>
       <form className="ride-form ride-request" onSubmit={submit}>
         <section className="ride-request-group" aria-labelledby="ride-route-heading">
           <h2 id="ride-route-heading">Ruta</h2>
