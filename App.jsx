@@ -1628,41 +1628,27 @@ function History({ notify }) {
   }
 
   async function submitRating(ride) {
-    if (!ride?.driver_id) {
-      notify("Este viaje no tiene conductor asignado para valorar.");
-      return;
-    }
-
+    if (submittedRatings[ride.id]) return;
     const stars = ratingStars[ride.id];
-
     if (!stars) {
-      notify("Selecciona una calificación de 1 a 5 estrellas.");
+      notify("Seleccioná de 1 a 5 estrellas.");
       return;
     }
 
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) return;
-
-    const { error } = await supabase.from("ride_ratings").upsert(
-      [
-        {
-          ride_id: ride.id,
-          passenger_id: userData.user.id,
-          driver_id: ride.driver_id,
-          rating: stars,
-          comment: ratingDrafts[ride.id] || null,
-        },
-      ],
-      { onConflict: "ride_id,passenger_id" }
-    );
-
+    const { data: savedStars, error } = await supabase.rpc("vuelo_review_ride", {
+      p_ride: ride.id,
+      p_rating: stars,
+      p_comment: ratingDrafts[ride.id] || null,
+      p_as_driver: false,
+    });
     if (error) {
-      alert(error.message);
+      notify(error.message);
       return;
     }
 
+    setRatingStars((prev) => ({ ...prev, [ride.id]: savedStars }));
     setSubmittedRatings((prev) => ({ ...prev, [ride.id]: true }));
-    notify("Gracias por valorar tu viaje.");
+    notify("Reseña guardada.");
   }
 
   return (
@@ -1721,6 +1707,8 @@ function History({ notify }) {
                     <>
                       <textarea
                         placeholder="Comentario opcional..."
+                        maxLength={500}
+                        aria-label="Comentario opcional"
                         value={ratingDrafts[ride.id] || ""}
                         onChange={(e) => setDraft(ride.id, e.target.value)}
                       />
