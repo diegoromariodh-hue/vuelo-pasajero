@@ -1849,7 +1849,7 @@ function Offers({ notify, userId }) {
       return;
     }
 
-    const confirmCancel = window.confirm("¿Deseas cancelar esta solicitud de viaje?");
+    const confirmCancel = window.confirm("¿Querés cancelar la búsqueda de conductor? Podés hacerlo mientras todavía no hayas aceptado una oferta.");
     if (!confirmCancel) return;
 
     const { data: cancelled, error } = await supabase
@@ -1857,7 +1857,7 @@ function Offers({ notify, userId }) {
       .update({
         status: "cancelled",
         cancelled_at: new Date().toISOString(),
-        cancellation_reason: "Cancelado por el pasajero antes de aceptar oferta",
+        cancellation_reason: "Cancelado por el pasajero antes de aceptar una oferta",
       })
       .eq("id", selectedRide.id)
       .in("status", ["searching", "negotiating"])
