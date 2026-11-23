@@ -809,3 +809,20 @@ body{background:#f5faf6;color:#17372a}
 @keyframes ride-step-in{from{opacity:.65;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:420px){.app .ride-progress{gap:3px;padding:10px 6px}.app .ride-progress-step{flex-direction:column;gap:3px}.app .ride-progress-step b{font-size:.68rem}.app .ride-progress-step span{width:25px;height:25px;flex-basis:25px}.app .ride-wizard-actions .ride-wizard-back{flex-basis:88px}}
 @media(prefers-reduced-motion:reduce){.app .ride-request-group{animation:none}}
+
+
+/* Keep the trip progress visible while the passenger moves through the wizard */
+.app .ride-progress{
+  position:sticky;
+  top:calc(var(--app-header-height, 0px) + env(safe-area-inset-top) + 8px);
+  z-index:30;
+  box-shadow:0 8px 20px rgba(7,70,44,.09);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  transition:box-shadow .18s ease,background .18s ease;
+}
+.app .ride-progress-step.complete{opacity:1}
+.app .ride-progress-step.complete span{background:linear-gradient(120deg,#087a4b,#075c38);color:#fff}
+.app .ride-progress-step.current span{background:linear-gradient(120deg,#ff7668,#e93632);color:#fff;box-shadow:0 0 0 4px rgba(240,68,56,.12)}
+.app .ride-progress-step.current b{font-weight:900}
+@media(prefers-reduced-motion:reduce){.app .ride-progress{transition:none}}
