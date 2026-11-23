@@ -529,11 +529,13 @@ function AuthScreen() {
   const [showTerms, setShowTerms] = useState(false);
   const [msg, setMsg] = useState("");
   const [sending, setSending] = useState(false);
+  const [existingAccount, setExistingAccount] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
     setSending(true);
     setMsg("");
+    setExistingAccount(false);
 
     const cleanEmail = email.trim().toLowerCase();
 
@@ -550,10 +552,11 @@ function AuthScreen() {
         return;
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
+          emailRedirectTo: new URL("/", window.location.origin).href,
           data: {
             full_name: fullName.trim(),
             phone: whatsapp.trim(),
@@ -564,12 +567,24 @@ function AuthScreen() {
         },
       });
 
-      if (error) setMsg(error.message);
-      else setMsg("Registro creado. Revisa tu correo para verificar tu cuenta.");
+      if (["user_already_exists", "email_exists"].includes(error?.code)) {
+        setExistingAccount(true);
+        setMsg("Este correo ya tiene una cuenta en Vuelo. Podés entrar o recuperar tu contraseña.");
+      } else if (error?.code === "over_email_send_rate_limit") {
+        setMsg("Se alcanzó el límite temporal de correos. Volvé a intentar más tarde.");
+      } else if (error?.code === "email_address_not_authorized") {
+        setMsg("El servicio de correo de Vuelo no pudo enviar la verificación a esta dirección. Contactá a soporte.");
+      } else if (error?.code === "weak_password") {
+        setMsg("La contraseña no cumple los requisitos. Usá una más larga y difícil de adivinar.");
+      } else if (error) {
+        setMsg("No pudimos crear tu cuenta. Volvé a intentar o contactá a soporte.");
+      } else if (!data.session) {
+        setMsg("Revisá tu correo y la carpeta de spam. Si recibís un enlace de verificación, abrilo para continuar.");
+      }
     } else if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(
         recoveryEmail.trim().toLowerCase(),
-        { redirectTo: `${APP_URL}/reset-password` }
+        { redirectTo: new URL("/reset-password", window.location.origin).href }
       );
 
       if (error) setMsg(error.message);
@@ -579,7 +594,13 @@ function AuthScreen() {
         email: cleanEmail,
         password,
       });
-      if (error) setMsg(error.message);
+      if (error?.code === "invalid_credentials") {
+        setMsg("El correo o la contraseña no coinciden. Si ya tenés una cuenta, podés recuperar tu contraseña.");
+      } else if (error?.code === "email_not_confirmed") {
+        setMsg("Confirmá tu correo desde el enlace de verificación antes de entrar.");
+      } else if (error) {
+        setMsg("No pudimos iniciar sesión. Volvé a intentar.");
+      }
     }
 
     setSending(false);
@@ -604,7 +625,17 @@ function AuthScreen() {
             : "Muévete por Ometepe en vehículo o motocicleta, negocia tu tarifa y confirma tu viaje con confianza."}
         </p>
 
-        {msg && <div className="message">{msg}</div>}
+        {msg && <div className="message" role="status">{msg}</div>}
+        {mode === "register" && existingAccount && (
+          <div>
+            <button type="button" className="link-btn" onClick={() => { setMode("login"); setMsg(""); }}>
+              Entrar con este correo
+            </button>
+            <button type="button" className="link-btn" onClick={() => { setRecoveryEmail(email.trim()); setMode("forgot"); setMsg(""); }}>
+              Recuperar contraseña
+            </button>
+          </div>
+        )}
 
         {mode === "register" && (
           <>
