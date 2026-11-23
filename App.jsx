@@ -1377,186 +1377,117 @@ function RequestRide({ profile, notify, onCreated }) {
   const hasPickupPoint = form.pickup_lat != null && form.pickup_lng != null;
   const hasDestinationPoint = form.destination_lat != null && form.destination_lng != null;
 
-  const canSubmit =
-    hasLocationInput &&
-    isOmetepe &&
-    (hasPickupPoint || (form.pickup_address.trim() && form.pickup_reference.trim())) &&
-    (hasDestinationPoint || (form.destination_address.trim() && form.destination_reference.trim())) &&
-    form.passenger_offer &&
-    (form.vehicle_type_requested !== "car" || form.passenger_count) &&
-    (form.ride_mode === "immediate" || form.requested_departure_at);
+  function localDateTime(offsetHours) {
+    const date = new Date(Date.now() + offsetHours * 3600000);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+
+  function addressFields(field, title, letter, hasPoint) {
+    return (
+      <fieldset className="ride-location" data-point={letter}>
+        <legend><span className="ride-point-letter">{letter}</span> {title}</legend>
+        <label htmlFor={field + "-municipality"}>Municipio</label>
+        <select id={field + "-municipality"} value={form[field + "_municipality"]}
+          onChange={(event) => setField(field + "_municipality", event.target.value)} required>
+          <option value="Altagracia">Altagracia</option>
+          <option value="Moyogalpa">Moyogalpa</option>
+        </select>
+        <label htmlFor={field + "-address"}>Dirección{hasPoint ? " (opcional)" : ""}</label>
+        <input id={field + "-address"} value={form[field + "_address"]}
+          onChange={(event) => setField(field + "_address", event.target.value)}
+          placeholder={field === "pickup" ? "Ej. Calle del parque" : "Ej. Entrada de Ojo de Agua"} required={!hasPoint} />
+        <label htmlFor={field + "-reference"}>Referencia{hasPoint ? " (opcional)" : ""}</label>
+        <input id={field + "-reference"} value={form[field + "_reference"]}
+          onChange={(event) => setField(field + "_reference", event.target.value)}
+          placeholder="Ej. Frente a la entrada principal" required={!hasPoint} />
+      </fieldset>
+    );
+  }
 
   return (
     <section className="page">
       <div className="section-title">
         <h1>Solicitar viaje</h1>
-        <p>Marcá la recogida y el destino en el mapa o escribí las direcciones y referencias.</p>
+        <p>Viajes dentro de Ometepe.</p>
       </div>
 
-      <form className="ride-form" onSubmit={submit}>
-        <button type="button" className="gps-btn" onClick={useGPS} disabled={gettingGps}>
-          <Navigation size={18} />
-          {gettingGps ? "Obteniendo ubicación..." : "Usar mi ubicación actual"}
-        </button>
-
-        <button type="button" onClick={() => setShowMap(!showMap)} aria-expanded={showMap}
-          disabled={checkingPoint || gettingGps} style={{marginTop:8}}>
-          {showMap ? "Ocultar mapa" : "Marcar punto A y punto B"}
-        </button>
-        {showMap && <RidePointPicker form={form} savePoint={savePoint} disabled={checkingPoint || gettingGps}
-          clearPoint={(field) => setForm((previous) => ({
-            ...previous, [field + "_lat"]: null, [field + "_lng"]: null,
-          }))} />}
-        {(form.pickup_lat != null || form.destination_lat != null) && <p role="status">
-          {form.pickup_lat != null ? "Punto A guardado. " : ""}
-          {form.destination_lat != null ? "Punto B guardado." : ""}
-        </p>}
-        <label>Municipio de recogida</label>
-        <select
-          value={form.pickup_municipality}
-          onChange={(e) => setField("pickup_municipality", e.target.value)}
-          required
-        >
-          <option value="Altagracia">Altagracia</option>
-          <option value="Moyogalpa">Moyogalpa</option>
-        </select>
-
-        <label>Dirección de recogida{hasPickupPoint ? " (opcional)" : ""}</label>
-        <input
-          value={form.pickup_address}
-          onChange={(e) => setField("pickup_address", e.target.value)}
-          placeholder="Ej: Urbaite, del instituto 200 metros al norte..."
-          required={!hasPickupPoint}
-        />
-
-        <label>Referencia de recogida{hasPickupPoint ? " (opcional)" : ""}</label>
-        <input
-          value={form.pickup_reference}
-          onChange={(e) => setField("pickup_reference", e.target.value)}
-          placeholder="Ej: Frente a la iglesia, casa verde, camisa azul..."
-          required={!hasPickupPoint}
-        />
-
-        <label>Municipio del destino</label>
-        <select
-          value={form.destination_municipality}
-          onChange={(e) => setField("destination_municipality", e.target.value)}
-          required
-        >
-          <option value="Altagracia">Altagracia</option>
-          <option value="Moyogalpa">Moyogalpa</option>
-        </select>
-
-        <label>Destino{hasDestinationPoint ? " (opcional)" : ""}</label>
-        <input
-          value={form.destination_address}
-          onChange={(e) => setField("destination_address", e.target.value)}
-          placeholder="Ej: Del parque de Moyogalpa, 20 metros al oeste..."
-          required={!hasDestinationPoint}
-        />
-
-        <label>Referencia del destino{hasDestinationPoint ? " (opcional)" : ""}</label>
-        <input
-          value={form.destination_reference}
-          onChange={(e) => setField("destination_reference", e.target.value)}
-          placeholder="Ej: entrada principal, recepción, frente al restaurante..."
-          required={!hasDestinationPoint}
-        />
-
-        <label>Hora de salida</label>
-        <div className="transport-toggle">
-          <button
-            type="button"
-            className={form.ride_mode === "immediate" ? "selected" : ""}
-            onClick={() => {
-              setField("ride_mode", "immediate");
-              setField("requested_departure_at", "");
-            }}
-          >
-            Viaje inmediato
-          </button>
-          <button
-            type="button"
-            className={form.ride_mode === "scheduled" ? "selected" : ""}
-            onClick={() => setField("ride_mode", "scheduled")}
-          >
-            Programar
-          </button>
-        </div>
-
-        {form.ride_mode === "immediate" && (
-          <div className="gps-ok">
-            Tu solicitud será para salir lo antes posible. Usaremos un margen aproximado de 35 minutos.
+      <form className="ride-form ride-request" onSubmit={submit}>
+        <section className="ride-request-group" aria-labelledby="ride-route-heading">
+          <h2 id="ride-route-heading">Ruta</h2>
+          <p>Marcá ambos puntos o completá sus direcciones abajo.</p>
+          <div className="ride-request-options">
+            <button type="button" className="ride-map-toggle" onClick={() => setShowMap(!showMap)}
+              aria-expanded={showMap} aria-controls="ride-point-picker" disabled={checkingPoint || gettingGps}>
+              {showMap ? "Ocultar mapa" : hasPickupPoint || hasDestinationPoint ? "Ver o editar puntos" : "Marcar en el mapa"}
+            </button>
+            <button type="button" className="ride-secondary" onClick={useGPS} disabled={gettingGps || checkingPoint}>
+              <Navigation size={17} aria-hidden="true" /> {gettingGps ? "Buscando tu ubicación…" : "Usar mi ubicación para A"}
+            </button>
           </div>
-        )}
 
-        {form.ride_mode === "scheduled" && (
-          <>
-            <input
-              type="datetime-local"
-              value={form.requested_departure_at}
-              min={new Date(Date.now() + 120 * 60 * 1000).toISOString().slice(0, 16)}
-              max={new Date(Date.now() + 17 * 60 * 60 * 1000).toISOString().slice(0, 16)}
-              onChange={(e) => setField("requested_departure_at", e.target.value)}
-              required
-            />
-            <div className="gps-ok">
-              Puedes programar viajes entre 2 horas y 17 horas antes de la salida.
+          {showMap && <RidePointPicker form={form} savePoint={savePoint} disabled={checkingPoint || gettingGps}
+            clearPoint={(field) => setForm((previous) => ({
+              ...previous, [field + "_lat"]: null, [field + "_lng"]: null,
+            }))} />}
+          <div className="ride-request-locations">
+            {addressFields("pickup", "Recogida", "A", hasPickupPoint)}
+            {addressFields("destination", "Destino", "B", hasDestinationPoint)}
+          </div>
+          <p className="ride-field-hint" role="status">
+            {hasPickupPoint && hasDestinationPoint ? "Recogida y destino guardados en el mapa."
+              : hasPickupPoint ? "Recogida guardada en el mapa."
+              : hasDestinationPoint ? "Destino guardado en el mapa." : ""}
+          </p>
+        </section>
+
+        <section className="ride-request-group" aria-labelledby="ride-details-heading">
+          <h2 id="ride-details-heading">Salida y transporte</h2>
+          <fieldset className="ride-request-choice">
+            <legend>¿Cuándo salís?</legend>
+            <div className="ride-request-options">
+              {[["immediate", "Lo antes posible"], ["scheduled", "Programar"]].map(([value, label]) => (
+                <button key={value} type="button" className="ride-secondary" aria-pressed={form.ride_mode === value}
+                  onClick={() => setField("ride_mode", value)}>{label}</button>
+              ))}
             </div>
-          </>
-        )}
+            {form.ride_mode === "scheduled" && <>
+              <label htmlFor="ride-departure">Fecha y hora de salida</label>
+              <input id="ride-departure" type="datetime-local" value={form.requested_departure_at}
+                min={localDateTime(2)} max={localDateTime(17)} aria-describedby="ride-departure-hint"
+                onChange={(event) => setField("requested_departure_at", event.target.value)} required />
+              <p className="ride-field-hint" id="ride-departure-hint">Podés programar la salida entre 2 y 17 horas a partir de ahora.</p>
+            </>}
+          </fieldset>
+          <fieldset className="ride-request-choice">
+            <legend>¿En qué viajás?</legend>
+            <div className="ride-request-options">
+              {[["car", "Carro", Car], ["motorcycle", "Moto", Bike]].map(([value, label, Icon]) => (
+                <button key={value} type="button" className="ride-secondary" aria-pressed={form.vehicle_type_requested === value}
+                  onClick={() => setField("vehicle_type_requested", value)}><Icon size={18} aria-hidden="true" />{label}</button>
+              ))}
+            </div>
+          </fieldset>
+          {form.vehicle_type_requested === "car" && <>
+            <label htmlFor="ride-count">¿Cuántas personas viajan?</label>
+            <input id="ride-count" type="number" min="1" max="8" inputMode="numeric" value={form.passenger_count}
+              onChange={(event) => setField("passenger_count", event.target.value)} required />
+          </>}
+        </section>
 
-        <label>Tipo de transporte</label>
-        <div className="transport-toggle">
-          <button type="button" className={form.vehicle_type_requested === "car" ? "selected" : ""} onClick={() => setField("vehicle_type_requested", "car")}>
-            <Car size={20} /> Vehículo
-          </button>
-          <button type="button" className={form.vehicle_type_requested === "motorcycle" ? "selected" : ""} onClick={() => setField("vehicle_type_requested", "motorcycle")}>
-            <Bike size={20} /> Motocicleta
-          </button>
-        </div>
+        <section className="ride-request-group" aria-labelledby="ride-price-heading">
+          <h2 id="ride-price-heading">Tu oferta</h2>
+          <label htmlFor="ride-price">Tarifa inicial en córdobas (C$)</label>
+          <input id="ride-price" type="number" min="1" step="0.01" inputMode="decimal" value={form.passenger_offer}
+            aria-describedby="ride-price-hint" onChange={(event) => setField("passenger_offer", event.target.value)}
+            placeholder="Ej. 150" required />
+          <p className="ride-field-hint" id="ride-price-hint">El conductor puede ofrecer ese monto o proponer otro. Vos decidís si aceptás.</p>
+          <label htmlFor="ride-notes">Notas para el conductor (opcional)</label>
+          <textarea id="ride-notes" value={form.passenger_notes}
+            onChange={(event) => setField("passenger_notes", event.target.value)} placeholder="Ej. Llevo equipaje" />
+        </section>
 
-        {form.vehicle_type_requested === "car" && (
-          <>
-            <label>¿Cuántas personas van?</label>
-            <input
-              type="number"
-              min="1"
-              max="8"
-              value={form.passenger_count}
-              onChange={(e) => setField("passenger_count", e.target.value)}
-              placeholder="Ej: 3"
-              required
-            />
-          </>
-        )}
-
-        <label>Tu oferta inicial en córdobas</label>
-        <input
-          type="number"
-          min="1"
-          value={form.passenger_offer}
-          onChange={(e) => setField("passenger_offer", e.target.value)}
-          placeholder="Ej: 150"
-          required
-        />
-
-        <label>Notas adicionales</label>
-        <textarea
-          value={form.passenger_notes}
-          onChange={(e) => setField("passenger_notes", e.target.value)}
-          placeholder="Ej: llevo equipaje, viajo con niño, tengo una maleta..."
-        />
-
-        {hasLocationInput && !isOmetepe && (
-          <div className="out-zone">
-            <strong>Lo sentimos.</strong> Aún no contamos con conductores disponibles en esta zona.
-            Gracias por confiar en Vuelo. Estamos construyendo esta plataforma junto a nuestra comunidad para llegar cada vez a más personas. 💚
-          </div>
-        )}
-
-        <button disabled={sending || gettingGps || checkingPoint || !canSubmit}>
-          {sending ? "Buscando conductores..." : "Buscar conductor"}
+        <button type="submit" disabled={sending || gettingGps || checkingPoint}>
+          {sending ? "Enviando solicitud…" : "Enviar solicitud de viaje"}
         </button>
       </form>
     </section>
@@ -1583,6 +1514,7 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
       maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(instance);
     instance.on("click", ({ latlng }) => setCandidate(latlng));
+    instance.on("dragstart", () => setCandidate(null));
     map.current = instance;
     return () => { instance.remove(); map.current = null; markers.current = {}; };
   }, []);
@@ -1614,20 +1546,23 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
 
   if (mapError) return <p>El mapa no está disponible. Podés continuar con las direcciones escritas.</p>;
 
-  return <section aria-label="Mapa de recogida y destino" style={{marginBlock:14}}>
-    <div className="transport-toggle">
-      <button type="button" className={target === "pickup" ? "selected" : ""} aria-pressed={target === "pickup"}
-        disabled={disabled} onClick={() => { setTarget("pickup"); setCandidate(null); }}>A · Recogida</button>
-      <button type="button" className={target === "destination" ? "selected" : ""} aria-pressed={target === "destination"}
-        disabled={disabled} onClick={() => { setTarget("destination"); setCandidate(null); }}>B · Destino</button>
+  return <section id="ride-point-picker" className="ride-point-picker" aria-label="Mapa de recogida y destino">
+    <div className="ride-request-options">
+      <button type="button" className="ride-secondary" aria-pressed={target === "pickup"}
+        disabled={disabled} onClick={() => { setTarget("pickup"); setCandidate(null); }}><span className="ride-point-letter">A</span> Recogida{pickup_lat != null ? " ✓" : ""}</button>
+      <button type="button" className="ride-secondary" aria-pressed={target === "destination"}
+        disabled={disabled} onClick={() => { setTarget("destination"); setCandidate(null); }}><span className="ride-point-letter" data-point="B">B</span> Destino{destination_lat != null ? " ✓" : ""}</button>
     </div>
-    <p>Tocá el mapa o desplazalo y usá el centro.</p>
-    <div ref={host} aria-label="Mapa de Ometepe" style={{height:300,borderRadius:14,isolation:"isolate",marginBottom:8}} />
+    <p className="ride-field-hint">{target === "pickup" ? "Marcá dónde te recogen." : "Marcá adónde vas."} Tocá el mapa o mové la mira.</p>
+    <div className="ride-map-frame">
+      <div className="ride-map-canvas" ref={host} aria-label="Mapa de Ometepe" />
+      {!candidate && <span className="ride-map-crosshair" aria-hidden="true">+</span>}
+    </div>
     <button type="button" onClick={confirmPoint} disabled={disabled}>
       {disabled ? "Validando…" : (candidate ? "Guardar " : "Usar el centro como ") + (target === "pickup" ? "punto A" : "punto B")}
     </button>
     {(target === "pickup" ? pickup_lat != null : destination_lat != null) &&
-      <button type="button" className="link-btn" disabled={disabled} onClick={() => clearPoint(target)}>Quitar punto</button>}
+      <button type="button" className="ride-secondary ride-clear-point" disabled={disabled} onClick={() => { clearPoint(target); setCandidate(null); }}>Quitar {target === "pickup" ? "punto A" : "punto B"}</button>}
   </section>;
 }
 

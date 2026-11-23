@@ -578,3 +578,34 @@ button:disabled {
     margin-top: 12px;
   }
 }
+
+.ride-request { display: grid; gap: 16px; }
+.ride-request-group { border: 1px solid #dbe5e1; border-radius: 16px; padding: 16px; min-width: 0; }
+.ride-request-group h2 { margin: 0; font-size: 1.2rem; }
+.ride-request-group p { margin: 6px 0 10px; color: #475569; }
+.ride-request .ride-field-hint { font-size: .88rem; }
+.ride-field-hint:empty { display: none; }
+.ride-request-options, .ride-request-locations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ride-request .ride-secondary { background: #fff; border: 1px solid #b8c9c2; color: #172d26; padding: 9px 10px; min-height: 44px; border-radius: 12px; }
+.ride-request .ride-secondary[aria-pressed="true"] { border: 2px solid #067451; padding: 8px 9px; background: #e9fbf3; color: #064b37; }
+.ride-request .ride-map-toggle { padding: 9px 10px; min-height: 44px; border-radius: 12px; }
+.ride-request-locations { margin-top: 14px; }
+.ride-location, .ride-request-choice { min-width: 0; margin: 0; padding: 0; border: 0; }
+.ride-location { border: 1px solid #dbe5e1; border-radius: 12px; padding: 8px 12px 12px; }
+.ride-request legend { font-weight: 800; }
+.ride-request-choice { margin-top: 12px; }
+.ride-request-choice legend { margin-bottom: 6px; }
+.ride-request label { margin: 10px 0 5px; font-size: .92rem; }
+.ride-point-letter { display: inline-grid; place-items: center; min-width: 24px; height: 24px; border-radius: 50%; background: #1d4ed8; color: #fff; font-weight: 800; }
+.ride-point-letter[data-point="B"], [data-point="B"] .ride-point-letter { background: #067451; }
+.ride-point-picker { margin: 12px 0; padding: 10px; background: #f4f9f7; border-radius: 12px; }
+.ride-map-frame { position: relative; isolation: isolate; margin-bottom: 8px; }
+.ride-map-canvas { height: clamp(235px, 46vh, 320px); border-radius: 12px; }
+.ride-map-crosshair { position: absolute; left: 50%; top: 50%; z-index: 500; transform: translate(-50%, -50%); color: #172d26; background: #fff; border-radius: 50%; width: 24px; line-height: 24px; font-size: 21px; text-align: center; box-shadow: 0 1px 5px #172d2666; pointer-events: none; }
+.ride-request .ride-clear-point { margin-top: 6px; }
+@media (max-width: 560px) {
+  .ride-request { padding: 12px; gap: 12px; }
+  .ride-request-group { padding: 12px; }
+  .ride-request-locations { grid-template-columns: 1fr; gap: 12px; }
+  .ride-request-options button { overflow-wrap: anywhere; font-size: .88rem; }
+}
