@@ -626,6 +626,41 @@ function AuthScreen() {
     setMsg("Si tu cuenta está pendiente de confirmar, revisá tu correo para ver el nuevo código.");
   }
 
+
+  function goToStep(next) {
+    if (next === 2) {
+      if (!hasPickupPoint && (!form.pickup_address.trim() || !form.pickup_reference.trim())) {
+        notify("Completá el punto de recogida y su referencia, o marcá el punto A en el mapa.");
+        return;
+      }
+      if (!hasDestinationPoint && (!form.destination_address.trim() || !form.destination_reference.trim())) {
+        notify("Completá el destino y su referencia, o marcá el punto B en el mapa.");
+        return;
+      }
+      if (!isOmetepe) {
+        notify("Por ahora VUELO está disponible en Altagracia y Moyogalpa.");
+        return;
+      }
+    }
+    if (next === 3) {
+      if (form.vehicle_type_requested === "car" && (!form.passenger_count || Number(form.passenger_count) < 1 || Number(form.passenger_count) > 8)) {
+        notify("Indicá cuántas personas viajan (de 1 a 8).");
+        return;
+      }
+      const departure = getDepartureInfo();
+      if (!departure.ok) {
+        notify(departure.message);
+        return;
+      }
+    }
+    if (next === 4 && (!form.passenger_offer || Number(form.passenger_offer) <= 0)) {
+      notify("Ingresá un presupuesto mayor que cero.");
+      return;
+    }
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function submit(e) {
     e.preventDefault();
     setSending(true);
@@ -1214,6 +1249,7 @@ function InstallReminder({ notify }) {
 }
 
 function RequestRide({ profile, notify, onCreated }) {
+  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     pickup_municipality: "Altagracia",
     pickup_address: "",
@@ -1487,15 +1523,11 @@ function RequestRide({ profile, notify, onCreated }) {
         <p>Indicá dónde te recogemos y adónde vas. Compartiremos la ubicación exacta con el conductor al confirmar.</p>
       </div>
 
-      <div className="ride-progress" aria-label="Pasos para solicitar un viaje">
-        <div className="ride-progress-step"><span>1</span><b>Ruta</b></div>
-        <i aria-hidden="true" />
-        <div className="ride-progress-step"><span>2</span><b>Viaje</b></div>
-        <i aria-hidden="true" />
-        <div className="ride-progress-step"><span>3</span><b>Precio</b></div>
+      <div className="ride-progress" aria-label={`Paso ${step} de 4`}>
+        {[["Ruta",1],["Viaje",2],["Presupuesto",3],["Confirmar",4]].map(([label,number]) => <div key={number} className={`ride-progress-step ${step===number?"current":step>number?"complete":""}`}><span>{step>number?"✓":number}</span><b>{label}</b></div>)}
       </div>
-      <form className="ride-form ride-request" onSubmit={submit}>
-        <section className="ride-request-group" aria-labelledby="ride-route-heading">
+      <form className="ride-form ride-request" noValidate onSubmit={submit}>
+        {step === 1 && <section className="ride-request-group" aria-labelledby="ride-route-heading">
           <h2 id="ride-route-heading">Ruta</h2>
           <p>Elegí los puntos en el mapa o escribí las direcciones.</p>
           <div className="ride-request-options">
@@ -1521,9 +1553,9 @@ function RequestRide({ profile, notify, onCreated }) {
               : hasPickupPoint ? "Recogida guardada en el mapa."
               : hasDestinationPoint ? "Destino guardado en el mapa." : ""}
           </p>
-        </section>
+        </section>}
 
-        <section className="ride-request-group" aria-labelledby="ride-details-heading">
+        {step === 2 && <section className="ride-request-group" aria-labelledby="ride-details-heading">
           <div className="ride-step-heading"><span>2</span><div><h2 id="ride-details-heading">¿Cuándo y cómo viajás?</h2><p>Elegí el momento y el tipo de transporte.</p></div></div>
           <fieldset className="ride-request-choice">
             <legend>¿Cuándo salís?</legend>
@@ -1555,9 +1587,9 @@ function RequestRide({ profile, notify, onCreated }) {
             <input id="ride-count" type="number" min="1" max="8" inputMode="numeric" value={form.passenger_count}
               onChange={(event) => setField("passenger_count", event.target.value)} required />
           </>}
-        </section>
+        </section>}
 
-        <section className="ride-request-group" aria-labelledby="ride-price-heading">
+        {step === 3 && <section className="ride-request-group" aria-labelledby="ride-price-heading">
           <div className="ride-step-heading"><span>3</span><div><h2 id="ride-price-heading">¿Cuánto querés ofrecer?</h2><p>El precio se acuerda entre vos y el conductor.</p></div></div>
           <label htmlFor="ride-price">¿Cuánto ofrecés? (C$)</label>
           <input id="ride-price" type="number" min="1" step="0.01" inputMode="decimal" value={form.passenger_offer}
@@ -1567,11 +1599,27 @@ function RequestRide({ profile, notify, onCreated }) {
           <label htmlFor="ride-notes">Notas para el conductor (opcional)</label>
           <textarea id="ride-notes" value={form.passenger_notes}
             onChange={(event) => setField("passenger_notes", event.target.value)} placeholder="Ej. Llevo equipaje" />
-        </section>
+        </section>}
 
-        <button type="submit" disabled={sending || gettingGps || checkingPoint}>
+        {step === 4 && <section className="ride-request-group ride-review" aria-labelledby="ride-review-heading">
+          <h2 id="ride-review-heading">Revisá tu viaje</h2>
+          <p>Confirmá que los datos estén correctos antes de buscar conductor.</p>
+          <div className="ride-review-list">
+            <div><small>Recogida</small><strong>{form.pickup_municipality}, {form.pickup_address || "Punto A en el mapa"}</strong></div>
+            <div><small>Destino</small><strong>{form.destination_municipality}, {form.destination_address || "Punto B en el mapa"}</strong></div>
+            <div><small>Transporte</small><strong>{form.vehicle_type_requested === "car" ? "Carro" : "Motocicleta"}{form.vehicle_type_requested === "car" ? ` · ${form.passenger_count} persona(s)` : ""}</strong></div>
+            <div><small>Horario</small><strong>{form.ride_mode === "immediate" ? "Lo antes posible" : new Date(form.requested_departure_at).toLocaleString("es-NI")}</strong></div>
+            <div><small>Presupuesto ofrecido</small><strong className="ride-review-price">C$ {Number(form.passenger_offer || 0).toLocaleString("es-NI")}</strong></div>
+            {form.passenger_notes && <div><small>Notas</small><strong>{form.passenger_notes}</strong></div>}
+          </div>
+        </section>}
+
+        <div className="ride-wizard-actions">
+          {step > 1 && <button type="button" className="ride-wizard-back" onClick={() => goToStep(step - 1)} disabled={sending}>Atrás</button>}
+          {step < 4 ? <button type="button" className="ride-wizard-next" onClick={() => goToStep(step + 1)} disabled={gettingGps || checkingPoint}>Continuar</button> : <button type="submit" disabled={sending || gettingGps || checkingPoint}>
           {sending ? "Enviando solicitud…" : "Buscar conductor"}
-        </button>
+          </button>}
+        </div>
       </form>
     </section>
   );
