@@ -229,7 +229,7 @@ export default function App() {
         </button>
       </header>
 
-      <div style={{padding:"8px 16px",textAlign:"right"}}><button type="button" disabled={switchingMode} onClick={switchMode} style={{fontWeight:700,color:"inherit",background:"none",border:0,cursor:"pointer"}}>{switchingMode ? "Cambiando…" : "Modo conductor ↗"}</button>{handoffError && <p role="alert" style={{color:"#b42318"}}>{handoffError}</p>}</div>
+      <div className="vuelo-mode-switch"><span className="vuelo-mode-current">Modo pasajero</span><button className="vuelo-mode-button" type="button" disabled={switchingMode} onClick={switchMode}>{switchingMode ? "Cambiando…" : "Cambiar a conductor →"}</button>{handoffError && <p className="vuelo-mode-error" role="alert">{handoffError}</p>}</div>
       <PostRideSurvey key={session.user.id} userId={session.user.id} notify={notify} />
 
       <main>
