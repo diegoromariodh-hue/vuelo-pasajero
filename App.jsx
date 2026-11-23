@@ -1049,19 +1049,19 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
         <div>
           <span>Hola {firstName}</span>
           <h1>¿A dónde vamos hoy?</h1>
-          <p>Solicita un viaje en Ometepe, elige vehículo o motocicleta y negocia una tarifa justa.</p>
+          <p>Elegí tu destino, seleccioná cómo viajar y acordá el precio con tu conductor.</p>
         </div>
         <button onClick={goRequest}>
-          Solicitar viaje <ArrowRight size={18} />
+          Pedir un viaje <ArrowRight size={18} />
         </button>
       </div>
 
       <InstallReminder notify={notify} />
 
       <div className="emergency-card">
-        <h3>Reportes y emergencias</h3>
+        <h3>Ayuda y emergencias</h3>
         <p>
-          Para reportes de la app escribe a <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+          ¿Necesitás ayuda con la app? Escribinos a <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
           En una emergencia llama directamente a las autoridades.
         </p>
         <div className="emergency-actions">
@@ -1072,8 +1072,8 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
 
       <div className="share-card">
         <div>
-          <h3>Comparte Vuelo</h3>
-          <p>Invita a otras personas a usar la app y ayúdanos a crecer en Ometepe.</p>
+          <h3>Invitá a alguien</h3>
+          <p>Compartí VUELO con quien necesite moverse por Ometepe.</p>
         </div>
         <button onClick={shareApp}><Share2 size={18} /> Compartir app</button>
       </div>
@@ -1081,7 +1081,7 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
       <div className="commission-card">
         <div className="icon"><ShieldCheck /></div>
         <div>
-          <h2>0% de comisión en lanzamiento</h2>
+          <h2>Pagás lo que acordás</h2>
           <p>
             {settings?.passenger_message ||
               "Los pasajeros pagan únicamente el precio acordado con el conductor. Vuelo no añade cargos adicionales."}
@@ -1115,10 +1115,10 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
       )}
 
       <div className="quick-grid">
-        <InfoCard icon={<Car />} title="Vehículo" text="Ideal para equipaje, familias o viajes cómodos." />
-        <InfoCard icon={<Bike />} title="Motocicleta" text="Rápido y práctico para moverte dentro de la isla." />
-        <InfoCard icon={<MessageCircle />} title="Chat interno" text="Coordiná con tu conductor después de confirmar el viaje." />
-        <InfoCard icon={<Clock />} title="Historial" text="Consulta y valora tus viajes finalizados." />
+        <InfoCard icon={<Car />} title="Vehículo" text="Más espacio para viajar con comodidad." />
+        <InfoCard icon={<Bike />} title="Motocicleta" text="Una opción práctica para recorridos cortos." />
+        <InfoCard icon={<MessageCircle />} title="Chat interno" text="Conversá con tu conductor al confirmar." />
+        <InfoCard icon={<Clock />} title="Historial" text="Revisá tus viajes anteriores." />
       </div>
     </section>
   );
@@ -1459,20 +1459,20 @@ function RequestRide({ profile, notify, onCreated }) {
     <section className="page">
       <div className="section-title">
         <h1>Solicitar viaje</h1>
-        <p>Viajes dentro de Ometepe. El conductor elegido verá las direcciones y los puntos exactos cuando confirmés el viaje.</p>
+        <p>Indicá dónde te recogemos y adónde vas. Compartiremos la ubicación exacta con el conductor al confirmar.</p>
       </div>
 
       <form className="ride-form ride-request" onSubmit={submit}>
         <section className="ride-request-group" aria-labelledby="ride-route-heading">
           <h2 id="ride-route-heading">Ruta</h2>
-          <p>Marcá ambos puntos o completá sus direcciones abajo.</p>
+          <p>Elegí los puntos en el mapa o escribí las direcciones.</p>
           <div className="ride-request-options">
             <button type="button" className="ride-map-toggle" onClick={() => setShowMap(!showMap)}
               aria-expanded={showMap} aria-controls="ride-point-picker" disabled={checkingPoint || gettingGps}>
               {showMap ? "Ocultar mapa" : hasPickupPoint || hasDestinationPoint ? "Ver o editar puntos" : "Marcar en el mapa"}
             </button>
             <button type="button" className="ride-secondary" onClick={useGPS} disabled={gettingGps || checkingPoint}>
-              <Navigation size={17} aria-hidden="true" /> {gettingGps ? "Buscando tu ubicación…" : "Usar mi ubicación para A"}
+              <Navigation size={17} aria-hidden="true" /> {gettingGps ? "Buscando tu ubicación…" : "Usar mi ubicación"}
             </button>
           </div>
 
@@ -1492,7 +1492,7 @@ function RequestRide({ profile, notify, onCreated }) {
         </section>
 
         <section className="ride-request-group" aria-labelledby="ride-details-heading">
-          <h2 id="ride-details-heading">Salida y transporte</h2>
+          <h2 id="ride-details-heading">¿Cuándo y cómo viajás?</h2>
           <fieldset className="ride-request-choice">
             <legend>¿Cuándo salís?</legend>
             <div className="ride-request-options">
@@ -1526,19 +1526,19 @@ function RequestRide({ profile, notify, onCreated }) {
         </section>
 
         <section className="ride-request-group" aria-labelledby="ride-price-heading">
-          <h2 id="ride-price-heading">Tu oferta</h2>
-          <label htmlFor="ride-price">Tarifa inicial en córdobas (C$)</label>
+          <h2 id="ride-price-heading">Precio propuesto</h2>
+          <label htmlFor="ride-price">¿Cuánto ofrecés? (C$)</label>
           <input id="ride-price" type="number" min="1" step="0.01" inputMode="decimal" value={form.passenger_offer}
             aria-describedby="ride-price-hint" onChange={(event) => setField("passenger_offer", event.target.value)}
             placeholder="Ej. 150" required />
-          <p className="ride-field-hint" id="ride-price-hint">El conductor puede ofrecer ese monto o proponer otro. Vos decidís si aceptás.</p>
+          <p className="ride-field-hint" id="ride-price-hint">El conductor puede aceptar o proponer otro precio. Vos decidís.</p>
           <label htmlFor="ride-notes">Notas para el conductor (opcional)</label>
           <textarea id="ride-notes" value={form.passenger_notes}
             onChange={(event) => setField("passenger_notes", event.target.value)} placeholder="Ej. Llevo equipaje" />
         </section>
 
         <button type="submit" disabled={sending || gettingGps || checkingPoint}>
-          {sending ? "Enviando solicitud…" : "Enviar solicitud de viaje"}
+          {sending ? "Enviando solicitud…" : "Buscar conductor"}
         </button>
       </form>
     </section>
@@ -1799,7 +1799,7 @@ function Offers({ notify, userId }) {
       {!selectedRide && (
         <div className="empty-card">
           <Wallet size={36} />
-          <h2>No tienes viajes activos</h2>
+          <h2>Todavía no tenés viajes activos</h2>
           <p>Solicita un viaje para empezar a recibir ofertas.</p>
         </div>
       )}
@@ -1862,8 +1862,8 @@ function Offers({ notify, userId }) {
         {offers.length === 0 && selectedRide && ["searching", "negotiating"].includes(selectedRide.status) && (
           <div className="empty-card">
             <Clock size={34} />
-            <h2>Buscando conductores...</h2>
-            <p>Las ofertas aparecerán aquí en cuanto un conductor responda.</p>
+            <h2>Buscando conductores…</h2>
+            <p>Te avisaremos cuando un conductor envíe una oferta.</p>
           </div>
         )}
 
@@ -2118,7 +2118,7 @@ function History({ notify }) {
       {rides.length === 0 && (
         <div className="empty-card">
           <Clock size={34} />
-          <h2>Aún no tienes historial</h2>
+          <h2>Todavía no tenés viajes anteriores</h2>
           <p>Tus viajes finalizados aparecerán aquí.</p>
         </div>
       )}
