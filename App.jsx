@@ -1168,6 +1168,8 @@ function RequestRide({ profile, notify, onCreated }) {
     pickup_lng: null,
     destination_municipality: "Moyogalpa",
     destination_address: "",
+    destination_lat: null,
+    destination_lng: null,
     destination_reference: "",
     vehicle_type_requested: "car",
     passenger_count: "",
@@ -1177,6 +1179,8 @@ function RequestRide({ profile, notify, onCreated }) {
     passenger_notes: "",
   });
 
+  const [checkingPoint, setCheckingPoint] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [gettingGps, setGettingGps] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -1195,6 +1199,25 @@ function RequestRide({ profile, notify, onCreated }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  async function savePoint(field, lat, lng) {
+    setCheckingPoint(true);
+    try {
+      const { data, error } = await supabase.rpc("vuelo_in_ometepe", { lat, lng });
+      if (error) {
+        notify("No pudimos validar el punto. Volvé a intentar.");
+        return false;
+      }
+      if (!data) {
+        notify("Marcá un punto dentro de Ometepe.");
+        return false;
+      }
+      setForm((previous) => ({ ...previous, [field + "_lat"]: lat, [field + "_lng"]: lng }));
+      return true;
+    } finally {
+      setCheckingPoint(false);
+    }
+  }
+
   function useGPS() {
     setGettingGps(true);
 
@@ -1206,23 +1229,14 @@ function RequestRide({ profile, notify, onCreated }) {
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const { data: covered, error } = await supabase.rpc("vuelo_in_ometepe", {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
-        if (error || !covered) {
-          setForm((prev) => ({ ...prev, pickup_lat: null, pickup_lng: null }));
+        try {
+          if (await savePoint("pickup", pos.coords.latitude, pos.coords.longitude)) {
+            setShowMap(true);
+            notify("Punto A marcado con tu ubicación actual.");
+          }
+        } finally {
           setGettingGps(false);
-          notify(error ? "No pudimos verificar el GPS. Podés indicar una dirección en Ometepe." : "Este punto GPS está fuera de Ometepe. Indicá una dirección dentro de la isla.");
-          return;
         }
-        setForm((prev) => ({
-          ...prev,
-          pickup_lat: pos.coords.latitude,
-          pickup_lng: pos.coords.longitude,
-        }));
-        setGettingGps(false);
-        notify("Ubicación GPS agregada correctamente. Ahora escribe la dirección completa y referencia.");
       },
       () => {
         setGettingGps(false);
@@ -1278,7 +1292,7 @@ function RequestRide({ profile, notify, onCreated }) {
   async function submit(e) {
     e.preventDefault();
 
-    if (gettingGps) return;
+    if (gettingGps || checkingPoint) return;
 
     if (!hasLocationInput || !isOmetepe) {
       alert("Lo sentimos. Aún no contamos con conductores disponibles en esta zona. Gracias por confiar en Vuelo. Estamos construyendo esta plataforma junto a nuestra comunidad para llegar cada vez a más personas.");
@@ -1336,6 +1350,8 @@ function RequestRide({ profile, notify, onCreated }) {
         pickup_lat: form.pickup_lat,
         pickup_lng: form.pickup_lng,
         destination_address: `${form.destination_municipality}, ${form.destination_address}`,
+        destination_lat: form.destination_lat,
+        destination_lng: form.destination_lng,
         destination_reference: form.destination_reference || null,
         requested_departure_at: departure.value,
         passenger_count: form.vehicle_type_requested === "car" ? Number(form.passenger_count) : null,
@@ -1373,7 +1389,7 @@ function RequestRide({ profile, notify, onCreated }) {
     <section className="page">
       <div className="section-title">
         <h1>Solicitar viaje</h1>
-        <p>Usa GPS si quieres, pero siempre escribe dirección completa y referencias para ayudar al conductor.</p>
+        <p>Marcá la recogida y el destino en el mapa o escribí las direcciones y referencias.</p>
       </div>
 
       <form className="ride-form" onSubmit={submit}>
@@ -1382,13 +1398,18 @@ function RequestRide({ profile, notify, onCreated }) {
           {gettingGps ? "Obteniendo ubicación..." : "Usar mi ubicación actual"}
         </button>
 
-        {form.pickup_lat && (
-          <div className="gps-ok">
-            GPS agregado: {form.pickup_lat.toFixed(5)}, {form.pickup_lng.toFixed(5)}. Es obligatorio escribir dirección completa y referencia.
-          </div>
-        )}
-
-        <p>Viajes dentro de Ometepe. <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></p>
+        <button type="button" onClick={() => setShowMap(!showMap)} aria-expanded={showMap}
+          disabled={checkingPoint || gettingGps} style={{marginTop:8}}>
+          {showMap ? "Ocultar mapa" : "Marcar punto A y punto B"}
+        </button>
+        {showMap && <RidePointPicker form={form} savePoint={savePoint} disabled={checkingPoint || gettingGps}
+          clearPoint={(field) => setForm((previous) => ({
+            ...previous, [field + "_lat"]: null, [field + "_lng"]: null,
+          }))} />}
+        {(form.pickup_lat != null || form.destination_lat != null) && <p role="status">
+          {form.pickup_lat != null ? "Punto A guardado. " : ""}
+          {form.destination_lat != null ? "Punto B guardado." : ""}
+        </p>}
         <label>Municipio de recogida</label>
         <select
           value={form.pickup_municipality}
@@ -1533,12 +1554,80 @@ function RequestRide({ profile, notify, onCreated }) {
           </div>
         )}
 
-        <button disabled={sending || gettingGps || !canSubmit}>
+        <button disabled={sending || gettingGps || checkingPoint || !canSubmit}>
           {sending ? "Buscando conductores..." : "Buscar conductor"}
         </button>
       </form>
     </section>
   );
+}
+
+function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
+  const host = React.useRef(null);
+  const map = React.useRef(null);
+  const markers = React.useRef({});
+  const [target, setTarget] = useState(form.pickup_lat == null ? "pickup" : "destination");
+  const [candidate, setCandidate] = useState(null);
+  const [mapError, setMapError] = useState(false);
+  const { pickup_lat, pickup_lng, destination_lat, destination_lng } = form;
+
+  useEffect(() => {
+    const leaflet = window.L;
+    if (!leaflet) {
+      setMapError(true);
+      return;
+    }
+    const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView([11.50, -85.58], 12);
+    leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(instance);
+    instance.on("click", ({ latlng }) => setCandidate(latlng));
+    map.current = instance;
+    return () => { instance.remove(); map.current = null; markers.current = {}; };
+  }, []);
+
+  useEffect(() => {
+    if (!map.current) return;
+    const points = [
+      ["pickup", pickup_lat, pickup_lng, "A", "#1d4ed8"],
+      ["destination", destination_lat, destination_lng, "B", "#067451"],
+      ["candidate", candidate?.lat, candidate?.lng, "?", "#92400e"],
+    ];
+    for (const [key, lat, lng, label, color] of points) {
+      markers.current[key]?.remove();
+      if (lat == null || lng == null) continue;
+      markers.current[key] = window.L.circleMarker([lat, lng], {
+        radius: 10, color: "#fff", weight: 2, fillColor: color, fillOpacity: 1, interactive: false,
+      }).bindTooltip(label, { permanent: true, direction: "top", offset: [0, -8] }).addTo(map.current);
+    }
+  }, [pickup_lat, pickup_lng, destination_lat, destination_lng, candidate]);
+
+  async function confirmPoint() {
+    if (!map.current || disabled) return;
+    const point = candidate || map.current.getCenter();
+    if (await savePoint(target, point.lat, point.lng)) {
+      setCandidate(null);
+      if (target === "pickup" && destination_lat == null) setTarget("destination");
+    }
+  }
+
+  if (mapError) return <p>El mapa no está disponible. Podés continuar con las direcciones escritas.</p>;
+
+  return <section aria-label="Mapa de recogida y destino" style={{marginBlock:14}}>
+    <div className="transport-toggle">
+      <button type="button" className={target === "pickup" ? "selected" : ""} aria-pressed={target === "pickup"}
+        disabled={disabled} onClick={() => { setTarget("pickup"); setCandidate(null); }}>A · Recogida</button>
+      <button type="button" className={target === "destination" ? "selected" : ""} aria-pressed={target === "destination"}
+        disabled={disabled} onClick={() => { setTarget("destination"); setCandidate(null); }}>B · Destino</button>
+    </div>
+    <p>Tocá el mapa o desplazalo y usá el centro.</p>
+    <div ref={host} aria-label="Mapa de Ometepe" style={{height:300,borderRadius:14,isolation:"isolate",marginBottom:8}} />
+    <button type="button" onClick={confirmPoint} disabled={disabled}>
+      {disabled ? "Validando…" : (candidate ? "Guardar " : "Usar el centro como ") + (target === "pickup" ? "punto A" : "punto B")}
+    </button>
+    {(target === "pickup" ? pickup_lat != null : destination_lat != null) &&
+      <button type="button" className="link-btn" disabled={disabled} onClick={() => clearPoint(target)}>Quitar punto</button>}
+  </section>;
 }
 
 function Offers({ notify, userId }) {
