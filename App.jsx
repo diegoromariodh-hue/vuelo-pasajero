@@ -209,6 +209,7 @@ export default function App() {
         {view === "offers" && <Offers notify={notify} userId={session.user.id} />}
         {view === "history" && <History notify={notify} />}
         {view === "profile" && <Profile profile={profile} />}
+        <p className="page"><a href="https://vuelonicaragua.online/#privacidad" target="_blank" rel="noreferrer" style={{color:"#067451",textDecoration:"underline"}}>Aviso de privacidad</a></p>
       </main>
 
       <nav className="bottom-nav" aria-label="Navegación de pasajero">
@@ -809,7 +810,7 @@ function PassengerTermsModal({ close }) {
         <img src={LOGO_URL} alt="Vuelo" />
         <span className="terms-eyebrow">Términos y Condiciones</span>
         <h1>Uso de Vuelo para pasajeros</h1>
-        <p className="terms-updated">Última actualización: junio 2026</p>
+        <p className="terms-updated">Última actualización: 23 de noviembre de 2026</p>
 
         <div className="terms-block">
           <h2>1. Naturaleza de la plataforma</h2>
@@ -824,8 +825,7 @@ function PassengerTermsModal({ close }) {
           <h2>2. Relación entre usuario y conductor</h2>
           <p>
             Cada viaje es acordado directamente entre el usuario y el conductor. La aceptación del viaje,
-            la tarifa, el punto de recogida, el destino y la prestación del servicio son responsabilidad
-            de las partes directamente involucradas.
+            la tarifa, el punto de recogida y el destino quedan registrados en la plataforma. Cada parte conserva los derechos y obligaciones que le corresponden por ley.
           </p>
         </div>
 
@@ -850,8 +850,7 @@ function PassengerTermsModal({ close }) {
         <div className="terms-block">
           <h2>5. Seguridad e incidentes</h2>
           <p>
-            En caso de accidentes, incidentes, conflictos o situaciones ocurridas durante un viaje, la responsabilidad
-            corresponderá a las partes directamente involucradas, conforme a la legislación aplicable en Nicaragua.
+            En caso de accidentes, incidentes, conflictos o situaciones ocurridas durante un viaje, las responsabilidades se determinan según los hechos y la legislación aplicable en Nicaragua.
             Vuelo podrá colaborar con las autoridades competentes cuando sea necesario.
           </p>
         </div>
@@ -869,16 +868,14 @@ function PassengerTermsModal({ close }) {
           <h2>7. Cancelaciones, retrasos y disponibilidad</h2>
           <p>
             Vuelo no garantiza disponibilidad permanente de conductores ni tiempos exactos de respuesta.
-            La plataforma no será responsable por retrasos, cancelaciones, clima, cierres de vía, fallas técnicas,
-            falta de conectividad o situaciones fuera de su control.
+            El clima, los cierres de vía y la conectividad pueden afectar el viaje. Si hay un problema, podés reportarlo a soporte.
           </p>
         </div>
 
         <div className="terms-block">
           <h2>8. Objetos personales</h2>
           <p>
-            Vuelo no será responsable por pérdida, daño u olvido de objetos personales durante los viajes.
-            La plataforma podrá facilitar reportes internos, sin garantizar la recuperación de artículos.
+            Si olvidás un objeto o se reporta un daño o pérdida, contactá a soporte para registrar el caso y coordinar los pasos siguientes.
           </p>
         </div>
 
@@ -894,7 +891,7 @@ function PassengerTermsModal({ close }) {
         <div className="terms-block">
           <h2>10. Soporte</h2>
           <p>
-            El canal oficial de soporte es <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+            Consultá el <a href="https://vuelonicaragua.online/#privacidad" target="_blank" rel="noreferrer">aviso de privacidad</a> para conocer cómo se usan tus datos. El canal oficial de soporte es <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
             Para emergencias, el usuario debe comunicarse directamente con las autoridades correspondientes.
           </p>
         </div>
@@ -1408,7 +1405,7 @@ function RequestRide({ profile, notify, onCreated }) {
     <section className="page">
       <div className="section-title">
         <h1>Solicitar viaje</h1>
-        <p>Viajes dentro de Ometepe.</p>
+        <p>Viajes dentro de Ometepe. El conductor elegido verá las direcciones y los puntos exactos cuando confirmés el viaje.</p>
       </div>
 
       <form className="ride-form ride-request" onSubmit={submit}>
