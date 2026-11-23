@@ -1299,13 +1299,13 @@ function RequestRide({ profile, notify, onCreated }) {
       return;
     }
 
-    if (!form.pickup_address.trim() || !form.pickup_reference.trim()) {
-      alert("Aunque uses GPS, debes escribir la dirección completa y una referencia del punto de recogida.");
+    if (!hasPickupPoint && (!form.pickup_address.trim() || !form.pickup_reference.trim())) {
+      alert("Marcá el punto A o escribí la dirección y una referencia de recogida.");
       return;
     }
 
-    if (!form.destination_reference.trim()) {
-      alert("Agrega una referencia del punto donde quieres ir para ayudar al conductor.");
+    if (!hasDestinationPoint && (!form.destination_address.trim() || !form.destination_reference.trim())) {
+      alert("Marcá el punto B o escribí la dirección y una referencia de destino.");
       return;
     }
 
@@ -1346,10 +1346,10 @@ function RequestRide({ profile, notify, onCreated }) {
       {
         passenger_id: profile.id,
         vehicle_type_requested: form.vehicle_type_requested,
-        pickup_address: `${form.pickup_municipality}, ${form.pickup_address}`,
+        pickup_address: `${form.pickup_municipality}, ${form.pickup_address.trim() || "Punto A en el mapa"}`,
         pickup_lat: form.pickup_lat,
         pickup_lng: form.pickup_lng,
-        destination_address: `${form.destination_municipality}, ${form.destination_address}`,
+        destination_address: `${form.destination_municipality}, ${form.destination_address.trim() || "Punto B en el mapa"}`,
         destination_lat: form.destination_lat,
         destination_lng: form.destination_lng,
         destination_reference: form.destination_reference || null,
@@ -1374,13 +1374,14 @@ function RequestRide({ profile, notify, onCreated }) {
     }
   }
 
+  const hasPickupPoint = form.pickup_lat != null && form.pickup_lng != null;
+  const hasDestinationPoint = form.destination_lat != null && form.destination_lng != null;
+
   const canSubmit =
     hasLocationInput &&
     isOmetepe &&
-    form.pickup_address.trim() &&
-    form.pickup_reference.trim() &&
-    form.destination_address.trim() &&
-    form.destination_reference.trim() &&
+    (hasPickupPoint || (form.pickup_address.trim() && form.pickup_reference.trim())) &&
+    (hasDestinationPoint || (form.destination_address.trim() && form.destination_reference.trim())) &&
     form.passenger_offer &&
     (form.vehicle_type_requested !== "car" || form.passenger_count) &&
     (form.ride_mode === "immediate" || form.requested_departure_at);
@@ -1420,20 +1421,20 @@ function RequestRide({ profile, notify, onCreated }) {
           <option value="Moyogalpa">Moyogalpa</option>
         </select>
 
-        <label>Dirección completa de recogida</label>
+        <label>Dirección de recogida{hasPickupPoint ? " (opcional)" : ""}</label>
         <input
           value={form.pickup_address}
           onChange={(e) => setField("pickup_address", e.target.value)}
           placeholder="Ej: Urbaite, del instituto 200 metros al norte..."
-          required
+          required={!hasPickupPoint}
         />
 
-        <label>Referencia obligatoria de recogida</label>
+        <label>Referencia de recogida{hasPickupPoint ? " (opcional)" : ""}</label>
         <input
           value={form.pickup_reference}
           onChange={(e) => setField("pickup_reference", e.target.value)}
           placeholder="Ej: Frente a la iglesia, casa verde, camisa azul..."
-          required
+          required={!hasPickupPoint}
         />
 
         <label>Municipio del destino</label>
@@ -1446,20 +1447,20 @@ function RequestRide({ profile, notify, onCreated }) {
           <option value="Moyogalpa">Moyogalpa</option>
         </select>
 
-        <label>Destino</label>
+        <label>Destino{hasDestinationPoint ? " (opcional)" : ""}</label>
         <input
           value={form.destination_address}
           onChange={(e) => setField("destination_address", e.target.value)}
           placeholder="Ej: Del parque de Moyogalpa, 20 metros al oeste..."
-          required
+          required={!hasDestinationPoint}
         />
 
-        <label>Referencia del destino</label>
+        <label>Referencia del destino{hasDestinationPoint ? " (opcional)" : ""}</label>
         <input
           value={form.destination_reference}
           onChange={(e) => setField("destination_reference", e.target.value)}
           placeholder="Ej: entrada principal, recepción, frente al restaurante..."
-          required
+          required={!hasDestinationPoint}
         />
 
         <label>Hora de salida</label>
