@@ -1358,6 +1358,40 @@ function RequestRide({ profile, notify, onCreated }) {
     );
   }
 
+  function goToStep(next) {
+    if (next === 2) {
+      if (!hasPickupPoint && !form.pickup_address.trim()) {
+        notify("Indicá dónde te recogemos: escribí una dirección o marcá el punto A en el mapa.");
+        return;
+      }
+      if (!hasDestinationPoint && !form.destination_address.trim()) {
+        notify("Indicá tu destino: escribí una dirección o marcá el punto B en el mapa.");
+        return;
+      }
+      if (!isOmetepe) {
+        notify("Por ahora VUELO está disponible en Altagracia y Moyogalpa.");
+        return;
+      }
+    }
+    if (next === 3) {
+      if (form.vehicle_type_requested === "car" && (!form.passenger_count || Number(form.passenger_count) < 1 || Number(form.passenger_count) > 8)) {
+        notify("Indicá cuántas personas viajan (de 1 a 8).");
+        return;
+      }
+      const departure = getDepartureInfo();
+      if (!departure.ok) {
+        notify(departure.message);
+        return;
+      }
+    }
+    if (next === 4 && (!form.passenger_offer || Number(form.passenger_offer) <= 0)) {
+      notify("Ingresá un presupuesto mayor que cero.");
+      return;
+    }
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function getDepartureInfo() {
     const now = new Date();
 
@@ -1411,13 +1445,13 @@ function RequestRide({ profile, notify, onCreated }) {
       return;
     }
 
-    if (!hasPickupPoint && (!form.pickup_address.trim() || !form.pickup_reference.trim())) {
-      alert("Marcá el punto A o escribí la dirección y una referencia de recogida.");
+    if (!hasPickupPoint && !form.pickup_address.trim()) {
+      alert("Marcá el punto A o escribí la dirección de recogida.");
       return;
     }
 
-    if (!hasDestinationPoint && (!form.destination_address.trim() || !form.destination_reference.trim())) {
-      alert("Marcá el punto B o escribí la dirección y una referencia de destino.");
+    if (!hasDestinationPoint && !form.destination_address.trim()) {
+      alert("Marcá el punto B o escribí la dirección de destino.");
       return;
     }
 
