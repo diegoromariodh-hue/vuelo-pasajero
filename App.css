@@ -609,3 +609,11 @@ button:disabled {
   .ride-request-locations { grid-template-columns: 1fr; gap: 12px; }
   .ride-request-options button { overflow-wrap: anywhere; font-size: .88rem; }
 }
+
+/* VUELO: differentiated account modes */
+.vuelo-mode-switch{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 16px 16px;padding:13px 15px;border-radius:16px;flex-wrap:wrap;border:1px solid #b2e6cb;background:linear-gradient(120deg,#e7f9ed 0%,#c6f0d8 55%,#a6e5c4 100%);box-shadow:0 5px 16px #063e2712}
+.vuelo-mode-current{font-size:13px;font-weight:800;color:#145c38}
+.vuelo-mode-button{background:#13734a;color:#ffffff;border:0;border-radius:11px;padding:11px 15px;min-height:44px;font-size:13px;font-weight:800;cursor:pointer}
+.vuelo-mode-button:disabled{opacity:.65;cursor:wait}
+.vuelo-mode-error{flex-basis:100%;color:#a22222;margin:0;font-size:13px}
+@media(max-width:380px){.vuelo-mode-switch{margin:8px 10px 12px}.vuelo-mode-button{width:100%}}
