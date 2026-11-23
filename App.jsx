@@ -183,6 +183,8 @@ export default function App() {
         </button>
       </header>
 
+      <PostRideSurvey key={session.user.id} userId={session.user.id} notify={notify} />
+
       <main>
         {view === "home" && (
           <Home
@@ -226,6 +228,134 @@ export default function App() {
         </button>
       </nav>
     </div>
+  );
+}
+
+function PostRideSurvey({ userId, notify }) {
+  const [tripId, setTripId] = useState(null);
+  const dismissed = React.useRef(new Set());
+  const dialog = React.useRef(null);
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState("");
+  const [sending, setSending] = useState(false);
+  const [errorText, setErrorText] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    let loading = false;
+    let refreshQueued = false;
+
+    async function refresh() {
+      if (!active || document.hidden) return;
+      if (loading) {
+        refreshQueued = true;
+        return;
+      }
+      loading = true;
+      try {
+        const ownerId = userId;
+        const recent = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: trips, error } = await supabase.from("rides").select("id")
+          .eq("passenger_id", ownerId)
+          .eq("status", "completed")
+          .not("driver_id", "is", null)
+          .gte("completed_at", recent).order("completed_at", { ascending: false }).limit(10);
+        if (error || !trips?.length || !active) return;
+        const { data: ratings, error: ratingsError } = await supabase.from("ride_ratings")
+          .select("ride_id").eq("passenger_id", ownerId)
+          .in("ride_id", trips.map(({ id }) => id));
+        if (!active || ratingsError) return;
+        const rated = new Set(ratings.map(({ ride_id }) => ride_id));
+        const pending = trips.find(({ id }) => !rated.has(id) && !dismissed.current.has(id));
+        if (pending) setTripId((current) => current || pending.id);
+      } finally {
+        loading = false;
+        if (refreshQueued) {
+          refreshQueued = false;
+          void refresh();
+        }
+      }
+    }
+
+    const channel = supabase.channel("post-ride-survey:" + userId)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rides" }, ({ new: row }) => {
+        if (row.status === "completed") void refresh();
+      }).subscribe();
+    const timer = window.setInterval(refresh, 12000);
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("vuelo-trip-completed", refresh);
+    void refresh();
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("vuelo-trip-completed", refresh);
+      void supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (tripId && dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, [tripId]);
+
+  function close() {
+    dismissed.current.add(tripId);
+    setTripId(null);
+    setStars(0);
+    setComment("");
+    setErrorText("");
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!stars || sending) return;
+    setSending(true);
+    setErrorText("");
+    try {
+      const { error } = await supabase.rpc("vuelo_review_ride", {
+        p_ride: tripId, p_rating: stars, p_comment: comment, p_as_driver: false,
+      });
+      if (error) {
+        setErrorText("No pudimos guardar la reseña. Volvé a intentarlo.");
+        return;
+      }
+      close();
+      notify("Reseña guardada.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (!tripId) return null;
+
+  return (
+    <dialog ref={dialog} className="rating-box" aria-labelledby="post-ride-title"
+      onCancel={(event) => { event.preventDefault(); if (!sending) close(); }}
+      style={{ width: "min(420px, calc(100% - 24px))", maxHeight: "85dvh", margin: "auto", padding: 20, border: "1px solid #cbd5e1" }}>
+      <form onSubmit={submit}>
+        <h2 id="post-ride-title">Calificá al conductor</h2>
+        <p>¿Cómo fue tu experiencia?</p>
+        <div className="rating-stars" role="group" aria-label="Calificación de 1 a 5 estrellas">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button key={value} type="button" aria-label={value + (value === 1 ? " estrella" : " estrellas")}
+              aria-pressed={stars === value} className={stars >= value ? "star-selected" : ""}
+              disabled={sending} onClick={() => setStars(value)}>
+              <Star size={17} fill={stars >= value ? "currentColor" : "none"} aria-hidden="true" />
+              {value}
+            </button>
+          ))}
+        </div>
+        <textarea aria-label="Comentario opcional" placeholder="Comentario opcional"
+          maxLength={500} value={comment} disabled={sending} onChange={(event) => setComment(event.target.value)} />
+        {errorText && <p role="alert">{errorText}</p>}
+        <button type="submit" className="send-rating-btn" disabled={!stars || sending}>
+          {sending ? "Guardando…" : "Enviar reseña"}
+        </button>
+        <button type="button" className="send-rating-btn" disabled={sending} onClick={close}
+          style={{ background: "#fff", color: "#067451", border: "1px solid #cbd5e1" }}>Más tarde</button>
+      </form>
+    </dialog>
   );
 }
 
