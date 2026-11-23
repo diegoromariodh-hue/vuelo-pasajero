@@ -87,7 +87,9 @@ export default function App() {
     setSwitchingMode(true);
     setHandoffError("");
     try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error("Tu sesión venció. Cerrá sesión e ingresá nuevamente.");
+      const currentSession = refreshed.session;
       if (!currentSession?.access_token) throw new Error("Iniciá sesión nuevamente.");
       const res = await fetch(import.meta.env.VITE_SUPABASE_URL + "/functions/v1/vuelo-mode-handoff", {
         method: "POST",
