@@ -968,8 +968,12 @@ function RequestRide({ profile, notify, onCreated }) {
 
     setSending(false);
 
-    if (error) alert(error.message);
-    else {
+    if (error?.code === "23505" && error.message.includes("vuelo_one_active_ride_per_passenger")) {
+      notify("Ya tenés una solicitud activa. Revisala antes de pedir otro viaje.");
+      onCreated();
+    } else if (error) {
+      alert(error.message);
+    } else {
       notify("Solicitud de viaje creada. Estamos buscando conductores.");
       onCreated();
     }
