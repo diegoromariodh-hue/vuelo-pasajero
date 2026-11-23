@@ -796,7 +796,7 @@ body{background:#f5faf6;color:#17372a}
 .app .ride-request-group{width:100%;margin:0;padding:clamp(16px,4vw,22px);background:linear-gradient(145deg,#f0f8f2,#e8f4eb);border:1px solid #dfede3;border-radius:20px;box-shadow:0 4px 16px rgba(8,85,51,.05);animation:ride-step-in .18s ease-out both}
 .app .ride-request-group h2{font-size:clamp(1.12rem,4vw,1.35rem);line-height:1.3;color:#174c35;margin:0 0 7px}
 .app .ride-request-group>p{font-size:.88rem;line-height:1.5;color:#607368;margin:0 0 14px}
-.app .ride-wizard-actions{display:flex;gap:10px;position:sticky;bottom:calc(72px + env(safe-area-inset-bottom));z-index:8;padding:10px 0 4px;background:linear-gradient(180deg,transparent,#f5faf6 18%)}
+.app .ride-wizard-actions{display:flex;gap:10px;position:static;z-index:auto;padding:14px 0 4px;margin-top:2px;background:transparent}
 .app .ride-wizard-actions button{min-height:51px;border-radius:14px;font-size:.95rem;font-weight:850}
 .app .ride-wizard-actions .ride-wizard-next,.app .ride-wizard-actions button[type="submit"]{flex:1;background:linear-gradient(115deg,#ff6b5d,#e93632);color:#fff;box-shadow:0 7px 18px #e9363228}
 .app .ride-wizard-actions .ride-wizard-back{flex:0 0 108px;background:#fff;color:#087a4b;border:1px solid #cfe3d5}
