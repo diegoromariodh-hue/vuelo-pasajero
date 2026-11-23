@@ -1307,24 +1307,13 @@ function Offers({ notify }) {
     const confirm = window.confirm(`¿Confirmas este viaje por C$${offer.amount}? Al confirmar, el conductor podrá dirigirse al punto de recogida.`);
     if (!confirm) return;
 
-    const { error } = await supabase
-      .from("rides")
-      .update({
-        driver_id: offer.driver_id,
-        final_price: offer.amount,
-        status: "confirmed",
-        passenger_confirmed: true,
-        confirmed_at: new Date().toISOString(),
-      })
-      .eq("id", offer.ride_id);
+    const { error } = await supabase.rpc("vuelo_confirm_offer", { p_offer_id: offer.id });
 
     if (error) {
-      alert(error.message);
+      notify(error.message);
+      await loadMyRides();
       return;
     }
-
-    await supabase.from("ride_offers").update({ status: "accepted" }).eq("id", offer.id);
-    await supabase.from("ride_offers").update({ status: "rejected" }).eq("ride_id", offer.ride_id).neq("id", offer.id);
 
     notify("Viaje confirmado correctamente.");
     loadMyRides();
