@@ -1,3 +1,4 @@
+import logoVuelo from "./logoVuelo.png";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -25,7 +26,7 @@ import {
 import { supabase } from "./supabaseClient";
 import "./App.css";
 
-const LOGO_URL = "/logoVuelo.png";
+const LOGO_URL = logoVuelo;
 const SUPPORT_EMAIL = "soporte@vuelonicaragua.online";
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
