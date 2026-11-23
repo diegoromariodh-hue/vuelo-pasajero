@@ -828,3 +828,19 @@ body{background:#f5faf6;color:#17372a}
   .app .ride-progress-step span{width:25px!important;height:25px!important;flex-basis:25px!important}
   .app .ride-progress-step b{font-size:9px!important}
 }
+
+
+/* Sticky progress strip: fixed in the trip flow, visually lightweight */
+.app .ride-progress{
+  position:sticky!important;
+  top:calc(env(safe-area-inset-top) + 8px)!important;
+  z-index:40!important;
+  background:rgba(255,255,255,.96)!important;
+  border:1px solid #e4eee7!important;
+  border-radius:14px!important;
+  padding:9px 10px 8px!important;
+  margin:8px 0 16px!important;
+  box-shadow:0 3px 12px rgba(15,60,36,.07)!important;
+  backdrop-filter:blur(8px)!important;
+  -webkit-backdrop-filter:blur(8px)!important;
+}
