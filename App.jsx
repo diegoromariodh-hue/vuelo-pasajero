@@ -1,5 +1,5 @@
 import logoVuelo from "./logoVuelo.png";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   ArrowRight,
   Bell,
@@ -1377,6 +1377,10 @@ function Offers({ notify }) {
             </button>
           )}
 
+          {selectedRide.driver_id && ["confirmed", "driver_on_way", "driver_arrived", "in_progress"].includes(selectedRide.status) && (
+            <RideTrackingMap key={selectedRide.id} ride={selectedRide} />
+          )}
+
           {confirmedDriver && (
             <div className="driver-confirmed-card">
               {confirmedDriver.avatar_url ? (
@@ -1451,6 +1455,100 @@ function Offers({ notify }) {
       <button className="refresh-btn" onClick={loadMyRides}>
         <RefreshCcw size={18} /> Actualizar
       </button>
+    </section>
+  );
+}
+
+function RideTrackingMap({ ride }) {
+  const container = useRef(null);
+  const mapState = useRef(null);
+  const [location, setLocation] = useState(null);
+  const [mapIssue, setMapIssue] = useState(false);
+  const [locationIssue, setLocationIssue] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const { id, pickup_lat: pickupLat, pickup_lng: pickupLng } = ride;
+
+  useEffect(() => {
+    let active = true;
+    let pending = false;
+    async function refresh() {
+      if (pending || document.hidden) return;
+      pending = true;
+      const { data, error } = await supabase.rpc("vuelo_latest_driver_location", { p_ride: id });
+      pending = false;
+      if (!active) return;
+      setNow(Date.now());
+      setLocationIssue(Boolean(error));
+      if (!error) setLocation(data?.[0] || null);
+    }
+    refresh();
+    const timer = window.setInterval(refresh, 8000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    const leaflet = window.L;
+    if (!leaflet) {
+      setMapIssue(true);
+      return;
+    }
+    const map = leaflet.map(container.current, { scrollWheelZoom: false }).setView([11.50, -85.58], 12);
+    const tiles = leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+    tiles.on("tileerror", () => setMapIssue(true));
+    tiles.on("tileload", () => setMapIssue(false));
+    const pickup = pickupLat != null && pickupLng != null ? [Number(pickupLat), Number(pickupLng)] : null;
+    if (pickup) {
+      leaflet.circleMarker(pickup, { radius: 8, color: "#fff", weight: 2, fillColor: "#1d4ed8", fillOpacity: 1 })
+        .bindTooltip("Punto de recogida").addTo(map);
+      map.setView(pickup, 15);
+    }
+    mapState.current = { map, pickup, driver: null };
+    return () => {
+      map.remove();
+      mapState.current = null;
+    };
+  }, [pickupLat, pickupLng]);
+
+  useEffect(() => {
+    const state = mapState.current;
+    if (!state) return;
+    if (!location) {
+      state.driver?.remove();
+      state.driver = null;
+      return;
+    }
+    const position = [Number(location.lat), Number(location.lng)];
+    if (state.driver) state.driver.setLatLng(position);
+    else {
+      state.driver = window.L.circleMarker(position, { radius: 9, color: "#fff", weight: 2, fillColor: "#067451", fillOpacity: 1 })
+        .bindTooltip("Conductor").addTo(state.map);
+      if (state.pickup) state.map.fitBounds([state.pickup, position], { padding: [24, 24], maxZoom: 16 });
+      else state.map.setView(position, 15);
+    }
+  }, [location, pickupLat, pickupLng]);
+
+  const seconds = location ? Math.max(0, Math.floor((now - Date.parse(location.created_at)) / 1000)) : 0;
+  const updated = seconds >= 60
+    ? "Última ubicación hace " + Math.floor(seconds / 60) + " min"
+    : "Actualizado hace " + seconds + " s";
+
+  return (
+    <section aria-label="Seguimiento del conductor" style={{ marginTop: 16 }}>
+      <h3>Ubicación del conductor</h3>
+      <p role="status">{location ? updated : "Esperando que el conductor comparta su ubicación."}</p>
+      {locationIssue && <p>No pudimos actualizar la ubicación.</p>}
+      <div ref={container} aria-label="Mapa del viaje"
+        style={{ height: 280, borderRadius: 16, overflow: "hidden", background: "#e2e8f0", isolation: "isolate" }} />
+      {mapIssue && <p>El mapa no pudo cargar por completo.</p>}
+      <p>{pickupLat != null && pickupLng != null ? "● Azul: punto de recogida · " : ""}● Verde: conductor</p>
     </section>
   );
 }
