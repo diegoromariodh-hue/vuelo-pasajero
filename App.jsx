@@ -240,7 +240,6 @@ export default function App() {
         </button>
       </header>
 
-      {view !== "request" && <div className="vuelo-mode-switch"><span className="vuelo-mode-current">Modo pasajero</span><button className="vuelo-mode-button" type="button" disabled={switchingMode} onClick={switchMode}>{switchingMode ? "Cambiando…" : "Cambiar a conductor →"}</button>{handoffError && <p className="vuelo-mode-error" role="alert">{handoffError}</p>}</div>}
       <PostRideSurvey key={session.user.id} userId={session.user.id} notify={notify} />
 
       <main>
@@ -266,7 +265,7 @@ export default function App() {
 
         {view === "offers" && <Offers notify={notify} userId={session.user.id} />}
         {view === "history" && <History notify={notify} />}
-        {view === "profile" && <Profile profile={profile} />}
+        {view === "profile" && <Profile profile={profile} onSwitchMode={switchMode} switchingMode={switchingMode} handoffError={handoffError} />}
         <p className="page"><a href="https://vuelonicaragua.online/#privacidad" target="_blank" rel="noreferrer" style={{color:"#067451",textDecoration:"underline"}}>Aviso de privacidad</a></p>
       </main>
 
@@ -2221,7 +2220,7 @@ function History({ notify }) {
   );
 }
 
-function Profile({ profile }) {
+function Profile({ profile, onSwitchMode, switchingMode, handoffError }) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -2279,36 +2278,48 @@ function Profile({ profile }) {
   }
 
   return (
-    <section className="page">
-      <div className="profile-card">
-        {avatarUrl ? (
-          <img className="profile-photo" src={avatarUrl} alt="Foto de perfil" />
-        ) : (
-          <div className="avatar">{profile?.full_name?.[0] || "V"}</div>
-        )}
-
-        <h1>{profile?.full_name || "Pasajero Vuelo"}</h1>
-        <p>{profile?.email}</p>
-        <p>{profile?.phone || "WhatsApp no registrado"}</p>
-
-        <label className="upload-avatar-btn">
-          <Upload size={18} />
-          {uploading ? "Subiendo foto..." : "Cambiar foto de perfil"}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={uploadAvatar}
-            disabled={uploading}
-          />
-        </label>
-
-        {msg && <div className="message profile-message">{msg}</div>}
-
-        <div className="profile-grid">
-          <div><strong>{profile?.vuelo_id || "PAS-000000"}</strong><span>ID Vuelo</span></div>
-          <div><strong>{profile?.rating || "5.00"}</strong><span>Calificación</span></div>
-          <div><strong>{profile?.city || "Ometepe"}</strong><span>Ciudad</span></div>
+    <section className="page profile-page">
+      <div className="profile-hero">
+        <div className="profile-avatar-wrap">
+          {avatarUrl ? <img className="profile-photo" src={avatarUrl} alt="Foto de perfil" /> : <div className="avatar">{profile?.full_name?.[0] || "V"}</div>}
+          <label className="profile-avatar-edit" aria-label="Cambiar foto de perfil">
+            <Upload size={15}/>
+            <input type="file" accept="image/*" onChange={uploadAvatar} disabled={uploading}/>
+          </label>
         </div>
+        <h1>{profile?.full_name || "Pasajero VUELO"}</h1>
+        <p>{profile?.email || "Correo no disponible"}</p>
+        <span className="profile-role-pill"><User size={14}/> Cuenta de pasajero</span>
+      </div>
+
+      {msg && <div className="message profile-message" role="status">{msg}</div>}
+
+      <div className="profile-section">
+        <h2>Mi información</h2>
+        <div className="profile-details">
+          <div className="profile-detail-row"><span><User size={17}/> Nombre completo</span><strong>{profile?.full_name || "No registrado"}</strong></div>
+          <div className="profile-detail-row"><span><MessageCircle size={17}/> WhatsApp</span><strong>{profile?.phone || "No registrado"}</strong></div>
+          <div className="profile-detail-row"><span><MapPin size={17}/> Ciudad</span><strong>{profile?.city || "Ometepe"}</strong></div>
+          <div className="profile-detail-row"><span><ShieldCheck size={17}/> ID VUELO</span><strong>{profile?.vuelo_id || "En proceso"}</strong></div>
+          {profile?.rating != null && <div className="profile-detail-row"><span><Star size={17}/> Calificación</span><strong>{Number(profile.rating).toFixed(2)} / 5</strong></div>}
+        </div>
+        <label className="profile-upload-wide">
+          <Upload size={17}/>
+          {uploading ? "Subiendo foto…" : "Cambiar foto de perfil"}
+          <input type="file" accept="image/*" onChange={uploadAvatar} disabled={uploading}/>
+        </label>
+      </div>
+
+      <button className="profile-driver-cta" type="button" onClick={onSwitchMode} disabled={switchingMode}>
+        <span className="profile-driver-icon"><Car size={21}/></span>
+        <span className="profile-driver-copy"><strong>{switchingMode ? "Preparando modo conductor…" : "Cambiar a modo conductor"}</strong><small>Accedé a las herramientas para conducir con VUELO</small></span>
+        <ArrowRight size={19}/>
+      </button>
+      {handoffError && <div className="profile-mode-error" role="alert">{handoffError}</div>}
+
+      <div className="profile-help-note">
+        <ShieldCheck size={18}/>
+        <span>El modo conductor está disponible para cuentas con perfil de conductor aprobado.</span>
       </div>
     </section>
   );
