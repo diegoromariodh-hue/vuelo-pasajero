@@ -79,8 +79,54 @@ export default function App() {
   const [view, setView] = useState(window.location.pathname === "/reset-password" ? "reset-password" : "home");
   const [toast, setToast] = useState("");
 
+  const [switchingMode, setSwitchingMode] = useState(false);
+  const [handoffError, setHandoffError] = useState("");
+
+  async function switchMode() {
+    if (switchingMode) return;
+    setSwitchingMode(true);
+    setHandoffError("");
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession?.access_token) throw new Error("Iniciá sesión nuevamente.");
+      const res = await fetch(import.meta.env.VITE_SUPABASE_URL + "/functions/v1/vuelo-mode-handoff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          "Authorization": "Bearer " + currentSession.access_token },
+        body: JSON.stringify({ action: "create", destination: "driver" })
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.url) throw new Error(payload.error || "No se pudo cambiar de modo.");
+      window.location.assign(payload.url);
+    } catch (error) {
+      setHandoffError(error.message || "No se pudo cambiar de modo.");
+      setSwitchingMode(false);
+    }
+  }
+
+  async function redeemModeHandoff() {
+    const query = new URLSearchParams(window.location.search);
+    const code = query.get("vuelo_handoff");
+    if (!code) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    try {
+      const res = await fetch(import.meta.env.VITE_SUPABASE_URL + "/functions/v1/vuelo-mode-handoff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: "redeem", destination: "passenger", code })
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.token_hash) throw new Error(payload.error || "No se pudo recuperar la sesión.");
+      const { error } = await supabase.auth.verifyOtp({ token_hash: payload.token_hash, type: "magiclink" });
+      if (error) throw error;
+    } catch (error) {
+      setHandoffError(error.message || "El cambio de modo falló. Podés iniciar sesión normalmente.");
+    }
+  }
+
+
   useEffect(() => {
-    init();
+    (async () => { await redeemModeHandoff(); await init(); })();
 
     const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -183,7 +229,7 @@ export default function App() {
         </button>
       </header>
 
-      <div style={{padding:"8px 16px",textAlign:"right"}}><a href="https://conductor.vuelonicaragua.online/" style={{fontWeight:700,color:"inherit"}}>Modo conductor ↗</a></div>
+      <div style={{padding:"8px 16px",textAlign:"right"}}><button type="button" disabled={switchingMode} onClick={switchMode} style={{fontWeight:700,color:"inherit",background:"none",border:0,cursor:"pointer"}}>{switchingMode ? "Cambiando…" : "Modo conductor ↗"}</button>{handoffError && <p role="alert" style={{color:"#b42318"}}>{handoffError}</p>}</div>
       <PostRideSurvey key={session.user.id} userId={session.user.id} notify={notify} />
 
       <main>
