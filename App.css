@@ -738,109 +738,66 @@ body{background:#f5faf6;color:#17372a}
 .app .bottom-nav{border-top:0;box-shadow:0 -5px 20px #174c3510}
 
 
-/* Cleaner trip-only workspace and clear three-step progress */
+/* Passenger request progress: one consistent responsive sticky definition */
 .app .ride-progress{
-  position:static;
-  top:auto;
-  z-index:auto;
-  box-shadow:none;
-  backdrop-filter:none;
-  -webkit-backdrop-filter:none;
-  transition:none;
-}
-.app .ride-progress-step.complete{opacity:1}
-.app .ride-progress-step.complete span{background:linear-gradient(120deg,#087a4b,#075c38);color:#fff}
-.app .ride-progress-step.current span{background:linear-gradient(120deg,#ff7668,#e93632);color:#fff;box-shadow:0 0 0 4px rgba(240,68,56,.12)}
-.app .ride-progress-step.current b{font-weight:900}
-@media(prefers-reduced-motion:reduce){.app .ride-progress{transition:none}}
-
-
-/* Refined compact progress indicator — inline, not floating */
-.app .ride-progress{
-  position:relative!important;
-  display:flex!important;
-  align-items:flex-start!important;
-  justify-content:space-between!important;
-  gap:4px!important;
-  width:100%!important;
-  margin:10px 0 18px!important;
-  padding:0 2px 8px!important;
-  background:transparent!important;
-  border:0!important;
-  border-radius:0!important;
-  box-shadow:none!important;
-  backdrop-filter:none!important;
-  -webkit-backdrop-filter:none!important;
-  overflow:visible!important;
+  position:sticky;
+  top:calc(env(safe-area-inset-top) + 8px);
+  z-index:40;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:4px;
+  width:100%;
+  margin:8px 0 16px;
+  padding:9px 10px 8px;
+  background:rgba(255,255,255,.96);
+  border:1px solid #e4eee7;
+  border-radius:14px;
+  box-shadow:0 3px 12px rgba(15,60,36,.07);
+  backdrop-filter:blur(8px);
 }
 .app .ride-progress-step{
-  position:relative!important;
-  z-index:1!important;
-  display:flex!important;
-  flex:1 1 0!important;
-  min-width:0!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  gap:6px!important;
-  opacity:1!important;
-  white-space:normal!important;
-  text-align:center!important;
+  position:relative;
+  display:flex;
+  flex:1 1 0;
+  min-width:0;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  text-align:center;
 }
 .app .ride-progress-step span{
-  width:28px!important;
-  height:28px!important;
-  flex:0 0 28px!important;
-  display:grid!important;
-  place-items:center!important;
-  border:2px solid #d7e6dc!important;
-  border-radius:50%!important;
-  background:#fff!important;
-  color:#829489!important;
-  font-size:11px!important;
-  font-weight:800!important;
-  box-shadow:none!important;
+  width:28px;
+  height:28px;
+  flex:0 0 28px;
+  display:grid;
+  place-items:center;
+  border:2px solid #d7e6dc;
+  border-radius:50%;
+  background:#fff;
+  color:#829489;
+  font-size:11px;
+  font-weight:800;
 }
 .app .ride-progress-step b{
-  display:block!important;
-  max-width:100%!important;
-  overflow-wrap:anywhere!important;
-  color:#829489!important;
-  font-size:clamp(10px,2.8vw,12px)!important;
-  font-weight:650!important;
-  line-height:1.2!important;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  color:#687d70;
+  font-size:clamp(10px,2.8vw,12px);
+  font-weight:650;
+  line-height:1.2;
 }
 .app .ride-progress-step.current span{
-  border-color:#e93632!important;
-  background:linear-gradient(135deg,#ff7668,#e93632)!important;
-  color:#fff!important;
-  box-shadow:0 0 0 3px #ffe3df!important;
+  border-color:#e93632;
+  background:linear-gradient(135deg,#ff7668,#e93632);
+  color:#fff;
+  box-shadow:0 0 0 3px #ffe3df;
 }
-.app .ride-progress-step.current b{color:#b7352d!important;font-weight:850!important}
-.app .ride-progress-step.complete span{
-  border-color:#087a4b!important;
-  background:#087a4b!important;
-  color:#fff!important;
-}
-.app .ride-progress-step.complete b{color:#087a4b!important;font-weight:750!important}
+.app .ride-progress-step.current b{color:#b7352d;font-weight:850}
+.app .ride-progress-step.complete span{border-color:#087a4b;background:#087a4b;color:#fff}
+.app .ride-progress-step.complete b{color:#087a4b;font-weight:750}
 @media(max-width:360px){
-  .app .ride-progress{gap:2px!important;margin:8px 0 14px!important}
-  .app .ride-progress-step span{width:25px!important;height:25px!important;flex-basis:25px!important}
-  .app .ride-progress-step b{font-size:9px!important}
-}
-
-
-/* Sticky progress strip: fixed in the trip flow, visually lightweight */
-.app .ride-progress{
-  position:sticky!important;
-  top:calc(env(safe-area-inset-top) + 8px)!important;
-  z-index:40!important;
-  background:rgba(255,255,255,.96)!important;
-  border:1px solid #e4eee7!important;
-  border-radius:14px!important;
-  padding:9px 10px 8px!important;
-  margin:8px 0 16px!important;
-  box-shadow:0 3px 12px rgba(15,60,36,.07)!important;
-  backdrop-filter:blur(8px)!important;
-  -webkit-backdrop-filter:blur(8px)!important;
+  .app .ride-progress{gap:2px;padding:8px 6px}
+  .app .ride-progress-step span{width:25px;height:25px}
+  .app .ride-progress-step b{font-size:9px}
 }
