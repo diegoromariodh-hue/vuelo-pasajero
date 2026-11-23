@@ -76,7 +76,7 @@ export default function App() {
   const [settings, setSettings] = useState(null);
   const [adCard, setAdCard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState(window.location.pathname === "/reset-password" ? "reset-password" : "home");
+  const [view, setView] = useState(() => window.location.pathname === "/reset-password" ? "reset-password" : (sessionStorage.getItem("vuelo-passenger-view") || "home"));
   const [toast, setToast] = useState("");
 
   const [switchingMode, setSwitchingMode] = useState(false);
@@ -129,6 +129,10 @@ export default function App() {
     }
   }
 
+
+  useEffect(() => {
+    if (view !== "reset-password") sessionStorage.setItem("vuelo-passenger-view", view);
+  }, [view]);
 
   useEffect(() => {
     (async () => { await redeemModeHandoff(); await init(); })();
@@ -1262,7 +1266,29 @@ function RequestRide({ profile, notify, onCreated }) {
         notify("Marcá un punto dentro de Ometepe.");
         return false;
       }
-      setForm((previous) => ({ ...previous, [field + "_lat"]: lat, [field + "_lng"]: lng }));
+      let addressText = "";
+      let municipality = "";
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, { headers: { "Accept-Language": "es" } });
+        if (response.ok) {
+          const place = await response.json();
+          const parts = place.address || {};
+          addressText = [parts.road, parts.neighbourhood || parts.suburb, parts.village || parts.town || parts.hamlet, parts.amenity || parts.building].filter(Boolean).filter((value,index,array)=>array.indexOf(value)===index).slice(0,3).join(", ") || place.name || "";
+          const municipalityName = [parts.municipality, parts.county, parts.city, parts.town, parts.village].filter(Boolean).join(" ");
+          if (/moyogalpa/i.test(municipalityName)) municipality = "Moyogalpa";
+          else if (/altagracia/i.test(municipalityName)) municipality = "Altagracia";
+        }
+      } catch (geocodeError) {
+        console.warn("Reverse geocoding unavailable:", geocodeError);
+      }
+      setForm((previous) => ({
+        ...previous,
+        [field + "_lat"]: lat,
+        [field + "_lng"]: lng,
+        ...(addressText ? { [field + "_address"]: addressText } : {}),
+        ...(municipality ? { [field + "_municipality"]: municipality } : {}),
+      }));
+      if (!addressText) notify("Punto guardado. Podés completar la dirección manualmente si hace falta.");
       return true;
     } finally {
       setCheckingPoint(false);
@@ -1573,8 +1599,8 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
   useEffect(() => {
     if (!map.current) return;
     const points = [
-      ["pickup", pickup_lat, pickup_lng, "A", "#1d4ed8"],
-      ["destination", destination_lat, destination_lng, "B", "#067451"],
+      ["pickup", pickup_lat, pickup_lng, "A", "#087a4b"],
+      ["destination", destination_lat, destination_lng, "B", "#f04438"],
       ["candidate", candidate?.lat, candidate?.lng, "?", "#92400e"],
     ];
     for (const [key, lat, lng, label, color] of points) {
