@@ -71,6 +71,11 @@ function isOfferExpired(offer) {
 }
 
 export default function App() {
+  const trackingToken = new URLSearchParams(window.location.search).get("entrega");
+  return trackingToken !== null ? <DeliveryTracking token={trackingToken} /> : <PassengerApp />;
+}
+
+function PassengerApp() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [settings, setSettings] = useState(null);
@@ -231,7 +236,7 @@ export default function App() {
           <img src={LOGO_URL} alt="Vuelo" />
           <div>
             <strong>Vuelo</strong>
-            <span>Pasajero</span>
+            <span>{view === "store" ? "Mi tienda" : "Pasajero"}</span>
           </div>
         </div>
 
@@ -240,10 +245,10 @@ export default function App() {
         </button>
       </header>
 
-      <PostRideSurvey key={session.user.id} userId={session.user.id} notify={notify} />
+      {view !== "store" && <PostRideSurvey key={session.user.id} userId={session.user.id} notify={notify} />}
 
       <main>
-        {view !== "request" && <NotificationInbox key={session.user.id} userId={session.user.id} onNavigate={setView} />}
+        {view !== "request" && view !== "store" && <NotificationInbox key={session.user.id} userId={session.user.id} onNavigate={setView} />}
         {view === "home" && (
           <Home
             profile={profile}
@@ -265,7 +270,8 @@ export default function App() {
 
         {view === "offers" && <Offers notify={notify} userId={session.user.id} />}
         {view === "history" && <History notify={notify} />}
-        {view === "profile" && <Profile profile={profile} onSwitchMode={switchMode} switchingMode={switchingMode} handoffError={handoffError} />}
+        {view === "store" && <StoreMode key={session.user.id} userId={session.user.id} leave={() => setView("profile")} />}
+        {view === "profile" && <Profile profile={profile} onOpenStore={() => setView("store")} onSwitchMode={switchMode} switchingMode={switchingMode} handoffError={handoffError} />}
         <p className="page"><a href="https://vuelonicaragua.online/#privacidad" target="_blank" rel="noreferrer" style={{color:"#067451",textDecoration:"underline"}}>Aviso de privacidad</a></p>
       </main>
 
@@ -1685,11 +1691,11 @@ function RequestRide({ profile, notify, onCreated }) {
   );
 }
 
-function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = false }) {
+function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = false, destinationOnly = false }) {
   const host = React.useRef(null);
   const map = React.useRef(null);
   const markers = React.useRef({});
-  const [target, setTarget] = useState(pickupOnly || form.pickup_lat == null ? "pickup" : "destination");
+  const [target, setTarget] = useState(!destinationOnly && (pickupOnly || form.pickup_lat == null) ? "pickup" : "destination");
   const [candidate, setCandidate] = useState(null);
   const [mapError, setMapError] = useState(false);
   const { pickup_lat, pickup_lng, destination_lat, destination_lng } = form;
@@ -1702,7 +1708,7 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = f
     }
     const center = pickupOnly
       ? (pickup_lat == null ? [11.52, -85.62] : [pickup_lat, pickup_lng])
-      : [11.50, -85.98];
+      : destinationOnly ? [11.52, -85.62] : [11.50, -85.98];
     const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView(center, 11);
     leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -1738,10 +1744,10 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = f
     }
   }
 
-  if (mapError) return <p>{pickupOnly ? "El mapa no está disponible. Podés usar la ubicación del dispositivo." : "El mapa no está disponible. Podés continuar con las direcciones escritas."}</p>;
+  if (mapError) return <p>{pickupOnly ? "El mapa no está disponible. Podés usar la ubicación del dispositivo." : destinationOnly ? "El mapa no está disponible. Volvé a intentar para guardar el destino." : "El mapa no está disponible. Podés continuar con las direcciones escritas."}</p>;
 
-  return <section id={pickupOnly ? "store-point-picker" : "ride-point-picker"} className="ride-point-picker" aria-label={pickupOnly ? "Mapa del punto de recogida" : "Mapa de recogida y destino"}>
-    {!pickupOnly && <div className="ride-request-options">
+  return <section id={pickupOnly ? "store-point-picker" : destinationOnly ? "delivery-point-picker" : "ride-point-picker"} className="ride-point-picker" aria-label={pickupOnly ? "Mapa del punto de recogida" : destinationOnly ? "Mapa del destino" : "Mapa de recogida y destino"}>
+    {!pickupOnly && !destinationOnly && <div className="ride-request-options">
       <button type="button" className="ride-secondary" aria-pressed={target === "pickup"}
         disabled={disabled} onClick={() => { setTarget("pickup"); setCandidate(null); }}><span className="ride-point-letter">A</span> Recogida{pickup_lat != null ? " ✓" : ""}</button>
       <button type="button" className="ride-secondary" aria-pressed={target === "destination"}
@@ -1753,10 +1759,10 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = f
       {!candidate && <span className="ride-map-crosshair" aria-hidden="true">+</span>}
     </div>
     <button type="button" onClick={confirmPoint} disabled={disabled}>
-      {disabled ? "Validando ubicación…" : pickupOnly ? "Guardar punto de recogida" : "Guardar " + (target === "pickup" ? "punto A · Recogida" : "punto B · Destino")}
+      {disabled ? "Validando ubicación…" : pickupOnly ? "Guardar punto de recogida" : destinationOnly ? "Guardar destino" : "Guardar " + (target === "pickup" ? "punto A · Recogida" : "punto B · Destino")}
     </button>
     {(target === "pickup" ? pickup_lat != null : destination_lat != null) &&
-      <button type="button" className="ride-secondary ride-clear-point" disabled={disabled} onClick={() => { clearPoint(target); setCandidate(null); }}>Quitar {pickupOnly ? "punto de recogida" : target === "pickup" ? "punto A" : "punto B"}</button>}
+      <button type="button" className="ride-secondary ride-clear-point" disabled={disabled} onClick={() => { clearPoint(target); setCandidate(null); }}>Quitar {pickupOnly ? "punto de recogida" : destinationOnly ? "destino" : target === "pickup" ? "punto A" : "punto B"}</button>}
   </section>;
 }
 
@@ -2337,9 +2343,241 @@ const STORE_CATEGORIES = [
   "Tecnología y electrónica",
   "Otro"
 ];
-const STORE_LOGO_EXTENSIONS = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
-function StoreApplication({ profile }) {
+const DELIVERY_STATUS = {
+  pending: "Buscando motorizado", accepted: "Motorizado asignado",
+  picked_up: "En camino", delivered: "Entregada", cancelled: "Cancelada",
+};
+const DELIVERY_FIELDS = [
+  ["recipient", "Nombre del destinatario", "text", 100],
+  ["phone", "WhatsApp del destinatario", "tel", 24],
+  ["address", "Dirección de entrega", "text", 240],
+];
+const emptyDelivery = { recipient: "", phone: "", address: "", fee: "", instructions: "", destination_lat: null, destination_lng: null };
+
+function StoreMode({ userId, leave }) {
+  const [store, setStore] = useState(null);
+  const [deliveries, setDeliveries] = useState([]);
+  const [form, setForm] = useState(emptyDelivery);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const requestId = useRef(null);
+
+  async function load() {
+    const [shop, jobs] = await Promise.all([
+      supabase.from("store_applications").select("id,store_name,address,delivery_enabled")
+        .eq("applicant_id", userId).eq("status", "approved").maybeSingle(),
+      supabase.from("store_deliveries").select("id,destination_address,recipient_name,fee,status,courier_name,tracking_token,created_at")
+        .eq("store_user_id", userId).order("created_at", { ascending: false }).limit(50),
+    ]);
+    setLoading(false);
+    if (shop.error || jobs.error) {
+      setLoadError("No pudimos cargar Mi tienda. Tocá Actualizar para reintentar.");
+      return;
+    }
+    setLoadError("");
+    setStore(shop.data);
+    setDeliveries(jobs.data);
+  }
+
+  useEffect(() => {
+    void load();
+    const timer = setInterval(load, 20000);
+    return () => clearInterval(timer);
+  }, [userId]);
+
+  function setField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function saveDestination(_target, lat, lng) {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("vuelo_in_ometepe", { lat, lng });
+    setBusy(false);
+    if (error || data !== true) {
+      setMessage(error ? "No pudimos validar el destino." : "Elegí un destino dentro de Ometepe.");
+      return false;
+    }
+    setMessage("Destino guardado.");
+    setForm((current) => ({ ...current, destination_lat: lat, destination_lng: lng }));
+    return true;
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (busy || !store?.delivery_enabled) return;
+    const phone = form.phone.trim().replace(/[().\s-]/g, "");
+    if (!/^\+?[1-9][0-9]{7,14}$/.test(phone) || form.recipient.trim().length < 2 || form.address.trim().length < 5) {
+      setMessage("Revisá el nombre, el WhatsApp y la dirección del destinatario.");
+      return;
+    }
+    if (form.destination_lat == null) {
+      setMessage("Guardá el destino en el mapa.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    requestId.current ||= crypto.randomUUID();
+    const { error } = await supabase.rpc("vuelo_create_delivery", {
+      p_id: requestId.current, p_store: store.id, p_recipient: form.recipient, p_phone: phone,
+      p_address: form.address, p_lat: form.destination_lat, p_lng: form.destination_lng,
+      p_fee: Number(form.fee), p_instructions: form.instructions,
+    });
+    setBusy(false);
+    if (error) {
+      setMessage(error.code === "P0001" ? error.message : "No pudimos guardar la entrega. Intentá de nuevo.");
+      return;
+    }
+    requestId.current = null;
+    setForm(emptyDelivery);
+    setOpen(false);
+    setMessage("¡Listo! La entrega está buscando motorizado.");
+    await load();
+  }
+
+  async function cancel(id) {
+    if (busy || !window.confirm("¿Cancelar esta solicitud de entrega?")) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("vuelo_delivery_action", { p_id: id, p_action: "cancel" });
+    setBusy(false);
+    setMessage(error ? "No se pudo cancelar. Actualizá el estado de la entrega." : "Solicitud cancelada.");
+    await load();
+  }
+
+  async function copyTracking(url) {
+    try {
+      await navigator.clipboard.writeText(url);
+      setMessage("Enlace de seguimiento copiado.");
+    } catch {
+      setMessage("Podés abrir el seguimiento y copiar la dirección del navegador.");
+    }
+  }
+
+  return <section className="page profile-page">
+    <div className="profile-section">
+      <button type="button" className="profile-upload-wide" onClick={leave}>Volver a modo pasajero</button>
+      <h1>{store?.store_name || "Mi tienda"}</h1>
+      {store && <p><strong>Recogida</strong><br />{store.address || "Punto registrado al solicitar la activación"}</p>}
+      {loading && <p role="status">Cargando Mi tienda…</p>}
+      {!loading && !loadError && !store && <p>Consultá tu solicitud de tienda desde Perfil.</p>}
+      {store && !store.delivery_enabled && <p>Las nuevas entregas están pausadas. Podés consultar tu historial.</p>}
+      {store?.delivery_enabled && !open && (
+        <button type="button" className="profile-upload-wide" onClick={() => { setOpen(true); setMessage(""); }}>Pedir motorizado</button>
+      )}
+      {loadError && <p role="alert">{loadError}</p>}
+      {message && <p role="status" aria-live="polite">{message}</p>}
+    </div>
+    {store?.delivery_enabled && open && <div className="profile-section">
+      <h2>Nueva entrega</h2>
+      <form className="ride-form ride-request" onSubmit={submit}>
+        {DELIVERY_FIELDS.map(([name, label, type, maxLength]) => <React.Fragment key={name}>
+          <label htmlFor={"delivery-" + name}>{label}</label>
+          <input id={"delivery-" + name} type={type} maxLength={maxLength} value={form[name]} onChange={(e) => setField(name, e.target.value)} required />
+        </React.Fragment>)}
+        <RidePointPicker form={form} savePoint={saveDestination} destinationOnly disabled={busy}
+          clearPoint={() => setForm((current) => ({ ...current, destination_lat: null, destination_lng: null }))} />
+        <label htmlFor="delivery-fee">Tarifa ofrecida al motorizado (C$)</label>
+        <input id="delivery-fee" type="number" min="1" max="10000" step="0.01" value={form.fee} onChange={(e) => setField("fee", e.target.value)} required />
+        <p>El pedido debe estar pagado. La tienda paga el envío directamente al motorizado.</p>
+        <label htmlFor="delivery-note">Instrucciones (opcional)</label>
+        <input id="delivery-note" maxLength={240} value={form.instructions} onChange={(e) => setField("instructions", e.target.value)} />
+        <button type="submit" disabled={busy}>{busy ? "Procesando…" : "Enviar solicitud"}</button>
+        <button type="button" className="ride-secondary" onClick={() => setOpen(false)} disabled={busy}>Cerrar formulario</button>
+      </form>
+    </div>}
+    {(store || loadError) && <div className="profile-section">
+      <h2>Mis entregas</h2>
+      <button type="button" className="profile-upload-wide" onClick={load}>Actualizar</button>
+      {!deliveries.length && !loadError && <p>Todavía no tenés entregas.</p>}
+      {deliveries.map((job) => {
+        const tracking = new URL("/", APP_URL);
+        tracking.searchParams.set("entrega", job.tracking_token);
+        return <article key={job.id} className="offer-card">
+          <h3>{job.recipient_name}</h3>
+          <p><strong>{DELIVERY_STATUS[job.status]}</strong> · C$ {Number(job.fee).toFixed(2)}</p>
+          <p>{job.destination_address}</p>
+          {job.courier_name && <p>Motorizado: {job.courier_name}</p>}
+          <p>{new Date(job.created_at).toLocaleString("es-NI")}</p>
+          <a href={tracking.href} target="_blank" rel="noreferrer">Ver seguimiento</a>
+          <button type="button" className="profile-upload-wide" onClick={() => copyTracking(tracking.href)}>Copiar enlace para el cliente</button>
+          {job.status === "pending" && <button type="button" className="profile-upload-wide" disabled={busy} onClick={() => cancel(job.id)}>Cancelar solicitud</button>}
+        </article>;
+      })}
+    </div>}
+  </section>;
+}
+
+function DeliveryTracking({ token }) {
+  const [job, setJob] = useState(null);
+  const [message, setMessage] = useState("Consultando entrega…");
+
+  useEffect(() => {
+    if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(token)) {
+      setMessage("Este enlace de seguimiento no es válido.");
+      return;
+    }
+    async function load() {
+      const { data, error } = await supabase.rpc("vuelo_delivery_public_status", { p_token: token }).maybeSingle();
+      if (error) setMessage("No pudimos consultar el estado. Volvé a intentar en un momento.");
+      else {
+        setJob(data);
+        setMessage(data ? "" : "No encontramos esta entrega.");
+      }
+    }
+    void load();
+    const timer = setInterval(load, 20000);
+    return () => clearInterval(timer);
+  }, [token]);
+
+  return <div className="app"><main><section className="page profile-page"><div className="profile-section">
+    <h1>Seguimiento de tu entrega</h1>
+    {job && <><p role="status"><strong>{DELIVERY_STATUS[job.status]}</strong></p><p>Actualizado {new Date(job.updated_at).toLocaleString("es-NI")}</p></>}
+    {message && <p role="status">{message}</p>}
+  </div></section></main></div>;
+}
+
+async function optimizeProfileImage(file) {
+  if (!file.size || file.size > 24 * 1024 * 1024) {
+    throw new Error("Elegí una foto de hasta 24 MB.");
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = url;
+    try {
+      await image.decode();
+    } catch {
+      throw new Error("No pudimos abrir la foto. Probá con JPG, PNG o WebP.");
+    }
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("No pudimos preparar la foto.");
+    for (const [side, quality] of [[768, 0.84], [640, 0.75], [512, 0.68], [384, 0.62]]) {
+      const scale = Math.min(1, side / Math.max(image.naturalWidth, image.naturalHeight));
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      let blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+      if (blob?.type !== "image/webp") {
+        context.globalCompositeOperation = "destination-over";
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      }
+      if (["image/webp", "image/jpeg"].includes(blob?.type) && blob.size <= 350 * 1024) {
+        return { blob, extension: blob.type === "image/webp" ? "webp" : "jpg" };
+      }
+    }
+    throw new Error("No pudimos reducir el peso de esta foto.");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function StoreApplication({ profile, onOpenStore }) {
   const [application, setApplication] = useState(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -2403,10 +2641,10 @@ function StoreApplication({ profile }) {
   function selectLogo(event) {
     const file = event.target.files?.[0];
     setMessage("");
-    if (file && (!STORE_LOGO_EXTENSIONS[file.type] || file.size === 0 || file.size > 2 * 1024 * 1024)) {
+    if (file && (!file.type.startsWith("image/") || file.size === 0 || file.size > 24 * 1024 * 1024)) {
       event.target.value = "";
       setLogoFile(null);
-      setMessage("Elegí un logo JPG, PNG o WebP de hasta 2 MB.");
+      setMessage("Elegí una imagen de hasta 24 MB para comprimirla.");
       return;
     }
     setLogoFile(file || null);
@@ -2442,11 +2680,14 @@ function StoreApplication({ profile }) {
       if (uploadedLogo.current?.file === logoFile) {
         logoPath = uploadedLogo.current.path;
       } else {
-        logoPath = `${profile.id}/${crypto.randomUUID()}.${STORE_LOGO_EXTENSIONS[logoFile.type]}`;
-        const { error: uploadError } = await supabase.storage.from("store-logos").upload(logoPath, logoFile);
-        if (uploadError) {
+        try {
+          const { blob, extension } = await optimizeProfileImage(logoFile);
+          logoPath = `${profile.id}/${crypto.randomUUID()}.${extension}`;
+          const { error } = await supabase.storage.from("store-logos").upload(logoPath, blob, { contentType: blob.type });
+          if (error) throw new Error("No pudimos subir el logo. Revisá tu conexión e intentá de nuevo.");
+        } catch (error) {
           setSaving(false);
-          setMessage("No pudimos subir el logo. Revisá tu conexión e intentá de nuevo.");
+          setMessage(error.message);
           return;
         }
         uploadedLogo.current = { file: logoFile, path: logoPath };
@@ -2491,7 +2732,7 @@ function StoreApplication({ profile }) {
         </>
       )}
       {!loading && !loadFailed && status === "approved" && (
-        <p role="status"><strong>{application.store_name}</strong> · Solicitud aprobada</p>
+        <><p role="status"><strong>{application.store_name}</strong> · Solicitud aprobada</p><button type="button" className="profile-upload-wide" onClick={onOpenStore}>Cambiar a Mi tienda</button></>
       )}
       {canApply && status === "rejected" && (
         <p role="status">Tu solicitud fue rechazada. Podés revisar tus datos y volver a enviarla.</p>
@@ -2507,9 +2748,9 @@ function StoreApplication({ profile }) {
           <label htmlFor="store-name">Nombre de la tienda</label>
           <input id="store-name" value={form.store_name} onChange={(event) => setForm({ ...form, store_name: event.target.value })} minLength={2} maxLength={100} required />
           <label htmlFor="store-logo">Logo de la tienda</label>
-          <input id="store-logo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="store-logo-hint"
+          <input id="store-logo" type="file" accept="image/*" aria-describedby="store-logo-hint"
             onChange={selectLogo} required={!previousLogo && !logoFile} disabled={saving} />
-          <small id="store-logo-hint">{logoFile ? `Logo seleccionado: ${logoFile.name}` : (previousLogo ? "Podés conservar el logo anterior o subir otro. " : "") + "JPG, PNG o WebP, máximo 2 MB."}</small>
+          <small id="store-logo-hint">{logoFile ? `Logo seleccionado: ${logoFile.name}` : (previousLogo ? "Podés conservar el logo anterior o subir otro. " : "") + "La imagen se convierte y comprime antes de subirla."}</small>
           <label htmlFor="store-owner">Nombre completo del dueño del negocio</label>
           <input id="store-owner" value={form.owner_name} onChange={(event) => setForm({ ...form, owner_name: event.target.value })} minLength={2} maxLength={120} required />
           <label htmlFor="store-category">Rubro del negocio</label>
@@ -2539,7 +2780,7 @@ function StoreApplication({ profile }) {
   );
 }
 
-function Profile({ profile, onSwitchMode, switchingMode, handoffError }) {
+function Profile({ profile, onOpenStore, onSwitchMode, switchingMode, handoffError }) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -2553,22 +2794,18 @@ function Profile({ profile, onSwitchMode, switchingMode, handoffError }) {
       return;
     }
 
-    if (file.size > 1024 * 1024) {
-      setMsg("La imagen debe pesar máximo 1 MB.");
-      return;
-    }
-
     setUploading(true);
     setMsg("");
 
     try {
-      const fileExt = file.name.split(".").pop();
+      const { blob, extension: fileExt } = await optimizeProfileImage(file);
       const filePath = `${profile.id}/avatar-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file, {
+        .upload(filePath, blob, {
           cacheControl: "3600",
+          contentType: blob.type,
           upsert: true,
         });
 
@@ -2636,7 +2873,7 @@ function Profile({ profile, onSwitchMode, switchingMode, handoffError }) {
       </button>
       {handoffError && <div className="profile-mode-error" role="alert">{handoffError}</div>}
 
-      <StoreApplication key={profile.id} profile={profile} />
+      <StoreApplication key={profile.id} profile={profile} onOpenStore={onOpenStore} />
       <EmailMarketingPreference profile={profile}/>
 
       <div className="profile-help-note">
