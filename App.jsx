@@ -1290,6 +1290,24 @@ function RequestRide({ profile, notify, onCreated }) {
   const [showMap, setShowMap] = useState(false);
   const [gettingGps, setGettingGps] = useState(false);
   const [sending, setSending] = useState(false);
+  const [routeSuggestion, setRouteSuggestion] = useState(null);
+  const { pickup_lat, pickup_lng, destination_lat, destination_lng } = form;
+  const routeKey = [pickup_lat, pickup_lng, destination_lat, destination_lng].join(",");
+  const suggestion = routeSuggestion?.key === routeKey ? routeSuggestion : null;
+
+  useEffect(() => {
+    if ([pickup_lat, pickup_lng, destination_lat, destination_lng].some((coordinate) => coordinate == null)) return;
+    let current = true;
+    async function loadSuggestion() {
+      const { data, error } = await supabase.rpc("vuelo_ride_fare_suggestion", {
+        p_pickup_lat: pickup_lat, p_pickup_lng: pickup_lng,
+        p_destination_lat: destination_lat, p_destination_lng: destination_lng,
+      }).maybeSingle();
+      if (current) setRouteSuggestion({ key: routeKey, quote: error ? null : data });
+    }
+    void loadSuggestion();
+    return () => { current = false; };
+  }, [pickup_lat, pickup_lng, destination_lat, destination_lng, routeKey]);
 
   const hasLocationInput = useMemo(() => {
     return (
@@ -1657,6 +1675,18 @@ function RequestRide({ profile, notify, onCreated }) {
 
         {step === 3 && <section className="ride-request-group" aria-labelledby="ride-price-heading">
           <div className="ride-step-heading"><span>3</span><div><h2 id="ride-price-heading">¿Cuánto querés ofrecer?</h2><p>El precio se acuerda entre vos y el conductor.</p></div></div>
+          <div className="profile-help-note" aria-live="polite">
+            <div>
+              {suggestion?.quote ? <>
+                <strong>Presupuesto sugerido · C$ {Number(suggestion.quote.fee).toFixed(2)}</strong>
+                <p>{Number(suggestion.quote.distance_km).toFixed(2)} km estimados por carretera · C$7/km · mínimo C$50</p>
+                <button type="button" className="ride-secondary" onClick={() => setField("passenger_offer", Number(suggestion.quote.fee).toFixed(2))}>
+                  Usar monto sugerido
+                </button>
+              </> : <p>{suggestion ? "No pudimos estimar la ruta. Podés ingresar tu presupuesto." : "Calculando el presupuesto sugerido…"}</p>}
+              {suggestion?.quote && <small><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">Datos viales © OpenStreetMap</a> · <a href="/ometepe-delivery-roads.json" download>Datos ODbL</a></small>}
+            </div>
+          </div>
           <label htmlFor="ride-price">¿Cuánto ofrecés? (C$)</label>
           <input id="ride-price" type="number" min="1" step="0.01" inputMode="decimal" value={form.passenger_offer}
             aria-describedby="ride-price-hint" onChange={(event) => setField("passenger_offer", event.target.value)}
@@ -1691,13 +1721,14 @@ function RequestRide({ profile, notify, onCreated }) {
   );
 }
 
-function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = false, destinationOnly = false }) {
+function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = false, destinationOnly = false, readOnly = false }) {
   const host = React.useRef(null);
   const map = React.useRef(null);
   const markers = React.useRef({});
   const [target, setTarget] = useState(!destinationOnly && (pickupOnly || form.pickup_lat == null) ? "pickup" : "destination");
   const [candidate, setCandidate] = useState(null);
   const [mapError, setMapError] = useState(false);
+  const deliveryPins = destinationOnly || readOnly;
   const { pickup_lat, pickup_lng, destination_lat, destination_lng } = form;
 
   useEffect(() => {
@@ -1706,15 +1737,17 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = f
       setMapError(true);
       return;
     }
-    const center = pickupOnly
+    const center = pickupOnly || deliveryPins
       ? (pickup_lat == null ? [11.52, -85.62] : [pickup_lat, pickup_lng])
-      : destinationOnly ? [11.52, -85.62] : [11.50, -85.98];
-    const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView(center, 11);
+      : [11.50, -85.98];
+    const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView(center, deliveryPins && pickup_lat != null ? 13 : 11);
     leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(instance);
-    instance.on("click", ({ latlng }) => setCandidate(latlng));
-    instance.on("dragstart", () => setCandidate(null));
+    if (!readOnly) {
+      instance.on("click", ({ latlng }) => setCandidate(latlng));
+      instance.on("dragstart", () => setCandidate(null));
+    }
     map.current = instance;
     return () => { instance.remove(); map.current = null; markers.current = {}; };
   }, []);
@@ -1723,20 +1756,36 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = f
     if (!map.current) return;
     const points = [
       ["pickup", pickup_lat, pickup_lng, "A", "#087a4b"],
-      ["destination", destination_lat, destination_lng, "B", "#f04438"],
-      ["candidate", candidate?.lat, candidate?.lng, "?", "#92400e"],
+      ["destination", destinationOnly && candidate ? null : destination_lat, destination_lng, "B", "#f04438"],
+      ["candidate", candidate?.lat, candidate?.lng, deliveryPins ? "B" : "?", "#92400e"],
     ];
     for (const [key, lat, lng, label, color] of points) {
       markers.current[key]?.remove();
       if (lat == null || lng == null) continue;
+      if (deliveryPins) {
+        const icon = window.L.divIcon({
+          className: "delivery-map-marker",
+          html: '<span class="delivery-map-pin delivery-map-pin--' + key + '">' + label + '</span>',
+          iconSize: [32, 42],
+          iconAnchor: [16, 42],
+        });
+        markers.current[key] = window.L.marker([lat, lng], { icon, interactive: false, keyboard: false }).addTo(map.current);
+        continue;
+      }
       markers.current[key] = window.L.circleMarker([lat, lng], {
         radius: 10, color: "#fff", weight: 2, fillColor: color, fillOpacity: 1, interactive: false,
       }).bindTooltip(label, { permanent: true, direction: "top", offset: [0, -8] }).addTo(map.current);
     }
-  }, [pickup_lat, pickup_lng, destination_lat, destination_lng, candidate]);
+  }, [pickup_lat, pickup_lng, destination_lat, destination_lng, candidate, deliveryPins, destinationOnly]);
+
+  useEffect(() => {
+    if (deliveryPins && map.current && pickup_lat != null && destination_lat != null) {
+      map.current.fitBounds([[pickup_lat, pickup_lng], [destination_lat, destination_lng]], { padding: [32, 44], maxZoom: 15 });
+    }
+  }, [deliveryPins, pickup_lat, pickup_lng, destination_lat, destination_lng]);
 
   async function confirmPoint() {
-    if (!map.current || disabled) return;
+    if (!map.current || disabled || (destinationOnly && !candidate)) return;
     const point = candidate || map.current.getCenter();
     if (await savePoint(target, point.lat, point.lng)) {
       setCandidate(null);
@@ -1744,24 +1793,31 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = f
     }
   }
 
-  if (mapError) return <p>{pickupOnly ? "El mapa no está disponible. Podés usar la ubicación del dispositivo." : destinationOnly ? "El mapa no está disponible. Volvé a intentar para guardar el destino." : "El mapa no está disponible. Podés continuar con las direcciones escritas."}</p>;
+  if (mapError) return <p>{readOnly ? "No pudimos abrir el mapa de los pines." : pickupOnly ? "El mapa no está disponible. Podés usar la ubicación del dispositivo." : destinationOnly ? "El mapa no está disponible. Volvé a intentar para guardar el destino." : "El mapa no está disponible. Podés continuar con las direcciones escritas."}</p>;
 
   return <section id={pickupOnly ? "store-point-picker" : destinationOnly ? "delivery-point-picker" : "ride-point-picker"} className="ride-point-picker" aria-label={pickupOnly ? "Mapa del punto de recogida" : destinationOnly ? "Mapa del destino" : "Mapa de recogida y destino"}>
-    {!pickupOnly && !destinationOnly && <div className="ride-request-options">
+    {deliveryPins && <div className="ride-map-instructions">
+      <strong>Pin A · Recogida en la tienda</strong>
+      <strong>Pin B · Destino de la entrega</strong>
+      {destinationOnly && <span>Tocá el mapa para colocar el pin B y después elegí “Guardar destino”.</span>}
+    </div>}
+    {!pickupOnly && !deliveryPins && <div className="ride-request-options">
       <button type="button" className="ride-secondary" aria-pressed={target === "pickup"}
         disabled={disabled} onClick={() => { setTarget("pickup"); setCandidate(null); }}><span className="ride-point-letter">A</span> Recogida{pickup_lat != null ? " ✓" : ""}</button>
       <button type="button" className="ride-secondary" aria-pressed={target === "destination"}
         disabled={disabled} onClick={() => { setTarget("destination"); setCandidate(null); }}><span className="ride-point-letter" data-point="B">B</span> Destino{destination_lat != null ? " ✓" : ""}</button>
     </div>}
-    <div className="ride-map-instructions"><strong>{target === "pickup" ? "Marcá tu punto de recogida" : "Marcá tu destino"}</strong><span>{target === "pickup" ? "Mové el mapa hasta el lugar exacto donde te esperamos." : "Mové el mapa hasta el lugar al que querés llegar."} Después tocá “Guardar punto”.</span></div>
+    {!deliveryPins && <div className="ride-map-instructions"><strong>{target === "pickup" ? "Marcá tu punto de recogida" : "Marcá tu destino"}</strong><span>{target === "pickup" ? "Mové el mapa hasta el lugar exacto donde te esperamos." : "Mové el mapa hasta el lugar al que querés llegar."} Después tocá “Guardar punto”.</span></div>}
     <div className="ride-map-frame">
       <div className="ride-map-canvas" ref={host} aria-label="Mapa de Ometepe" />
-      {!candidate && <span className="ride-map-crosshair" aria-hidden="true">+</span>}
+      {!readOnly && !candidate && <span className="ride-map-crosshair" aria-hidden="true">+</span>}
     </div>
-    <button type="button" onClick={confirmPoint} disabled={disabled}>
+    {destinationOnly && <button type="button" className="ride-secondary" disabled={disabled}
+      onClick={() => { if (map.current) setCandidate(map.current.getCenter()); }}>Colocar pin B en el centro</button>}
+    {!readOnly && <button type="button" onClick={confirmPoint} disabled={disabled || (destinationOnly && !candidate)}>
       {disabled ? "Validando ubicación…" : pickupOnly ? "Guardar punto de recogida" : destinationOnly ? "Guardar destino" : "Guardar " + (target === "pickup" ? "punto A · Recogida" : "punto B · Destino")}
-    </button>
-    {(target === "pickup" ? pickup_lat != null : destination_lat != null) &&
+    </button>}
+    {!readOnly && (target === "pickup" ? pickup_lat != null : destination_lat != null) &&
       <button type="button" className="ride-secondary ride-clear-point" disabled={disabled} onClick={() => { clearPoint(target); setCandidate(null); }}>Quitar {pickupOnly ? "punto de recogida" : destinationOnly ? "destino" : target === "pickup" ? "punto A" : "punto B"}</button>}
   </section>;
 }
@@ -2351,7 +2407,6 @@ const DELIVERY_STATUS = {
 const DELIVERY_FIELDS = [
   ["recipient", "Nombre del destinatario", "text", 100],
   ["phone", "WhatsApp del destinatario", "tel", 24],
-  ["address", "Dirección de entrega", "text", 240],
 ];
 const emptyDelivery = { recipient: "", phone: "", address: "", instructions: "", destination_lat: null, destination_lng: null };
 
@@ -2366,13 +2421,14 @@ function StoreMode({ userId, leave }) {
   const [loadError, setLoadError] = useState("");
   const [quote, setQuote] = useState(null);
   const [liveJob, setLiveJob] = useState(null);
+  const [pinsJob, setPinsJob] = useState(null);
   const requestId = useRef(null);
 
   async function load() {
     const [shop, jobs] = await Promise.all([
-      supabase.from("store_applications").select("id,store_name,address,delivery_enabled")
+      supabase.from("store_applications").select("id,store_name,address,pickup_lat,pickup_lng,delivery_enabled")
         .eq("applicant_id", userId).eq("status", "approved").maybeSingle(),
-      supabase.from("store_deliveries").select("id,destination_address,recipient_name,fee,distance_km,status,courier_name,tracking_token,created_at")
+      supabase.from("store_deliveries").select("id,destination_address,pickup_lat,pickup_lng,destination_lat,destination_lng,recipient_name,fee,distance_km,status,courier_name,tracking_token,created_at")
         .eq("store_user_id", userId).order("created_at", { ascending: false }).limit(50),
     ]);
     setLoading(false);
@@ -2414,8 +2470,8 @@ function StoreMode({ userId, leave }) {
     event.preventDefault();
     if (busy || !store?.delivery_enabled) return;
     const phone = form.phone.trim().replace(/[().\s-]/g, "");
-    if (!/^\+?[1-9][0-9]{7,14}$/.test(phone) || form.recipient.trim().length < 2 || form.address.trim().length < 5) {
-      setMessage("Revisá el nombre, el WhatsApp y la dirección del destinatario.");
+    if (!/^\+?[1-9][0-9]{7,14}$/.test(phone) || form.recipient.trim().length < 2) {
+      setMessage("Revisá el nombre y el WhatsApp del destinatario.");
       return;
     }
     if (!quote || form.destination_lat == null) {
@@ -2425,9 +2481,11 @@ function StoreMode({ userId, leave }) {
     setBusy(true);
     setMessage("");
     requestId.current ||= crypto.randomUUID();
+    const placeNote = form.address.trim();
+    const address = placeNote.length >= 5 ? placeNote : ["Pin B en el mapa", placeNote].filter(Boolean).join(" · ");
     const { error } = await supabase.rpc("vuelo_create_delivery", {
       p_id: requestId.current, p_store: store.id, p_recipient: form.recipient, p_phone: phone,
-      p_address: form.address, p_lat: form.destination_lat, p_lng: form.destination_lng,
+      p_address: address, p_lat: form.destination_lat, p_lng: form.destination_lng,
       p_fee: quote.fee, p_instructions: form.instructions,
     });
     setBusy(false);
@@ -2482,14 +2540,15 @@ function StoreMode({ userId, leave }) {
           <label htmlFor={"delivery-" + name}>{label}</label>
           <input id={"delivery-" + name} type={type} maxLength={maxLength} value={form[name]} onChange={(e) => setField(name, e.target.value)} required />
         </React.Fragment>)}
-        <RidePointPicker form={form} savePoint={saveDestination} destinationOnly disabled={busy}
+        <RidePointPicker form={{ ...form, pickup_lat: store.pickup_lat, pickup_lng: store.pickup_lng }}
+          savePoint={saveDestination} destinationOnly disabled={busy}
           clearPoint={() => {
             setQuote(null);
             setForm((current) => ({ ...current, destination_lat: null, destination_lng: null }));
           }} />
         <div className="profile-help-note">
           <div>
-            <strong>Tarifa automática · C$12 por km · mínimo C$50</strong>
+            <strong>Tarifa automática · C$7 por km · mínimo C$50</strong>
             {quote
               ? <p role="status">{Number(quote.distance_km).toFixed(2)} km estimados por carretera · <strong>C$ {Number(quote.fee).toFixed(2)}</strong></p>
               : <p>Guardá el destino para ver cuánto cuesta el envío.</p>}
@@ -2497,6 +2556,8 @@ function StoreMode({ userId, leave }) {
           </div>
         </div>
         <p>El pedido debe estar pagado. La tienda paga el envío directamente al motorizado.</p>
+        <label htmlFor="delivery-reference">Referencia del destino (opcional)</label>
+        <input id="delivery-reference" maxLength={240} value={form.address} onChange={(e) => setField("address", e.target.value)} />
         <label htmlFor="delivery-note">Instrucciones (opcional)</label>
         <input id="delivery-note" maxLength={240} value={form.instructions} onChange={(e) => setField("instructions", e.target.value)} />
         <button type="submit" disabled={busy || !quote}>{busy ? "Procesando…" : "Enviar solicitud"}</button>
@@ -2514,6 +2575,10 @@ function StoreMode({ userId, leave }) {
           <h3>{job.recipient_name}</h3>
           <p><strong>{DELIVERY_STATUS[job.status]}</strong> · C$ {Number(job.fee).toFixed(2)}</p>
           <p>{job.destination_address}{job.distance_km != null && ` · ${Number(job.distance_km).toFixed(2)} km`}</p>
+          <button type="button" className="profile-upload-wide" aria-expanded={pinsJob === job.id} onClick={() => setPinsJob(pinsJob === job.id ? null : job.id)}>
+            {pinsJob === job.id ? "Ocultar pines" : "Ver pines A y B"}
+          </button>
+          {pinsJob === job.id && <RidePointPicker key={job.id} form={job} readOnly />}
           {job.courier_name && <p>Motorizado: {job.courier_name}</p>}
           <p>{new Date(job.created_at).toLocaleString("es-NI")}</p>
           <button type="button" className="profile-upload-wide" onClick={() => setLiveJob(liveJob === job.id ? null : job.id)}>
