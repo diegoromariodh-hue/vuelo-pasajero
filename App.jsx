@@ -1211,6 +1211,16 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
         </div>
       )}
 
+      <section className="explore-stores-coming" aria-label="Explorar tiendas próximamente">
+        <div className="explore-stores-icon"><Store size={27}/></div>
+        <div className="explore-stores-copy">
+          <span className="explore-stores-kicker">PRÓXIMAMENTE EN VUELO</span>
+          <h2>¡Hay mucho por descubrir!</h2>
+          <p>Muy pronto vas a poder explorar tiendas de la isla, descubrir sus productos y pedir lo que necesitás sin salir de VUELO.</p>
+          <span className="explore-stores-link">Explorar tiendas <ArrowRight size={16}/></span>
+        </div>
+      </section>
+
       <div className="quick-grid">
         <InfoCard icon={<Car />} title="Vehículo" text="Más espacio para viajar con comodidad." />
         <InfoCard icon={<Bike />} title="Motocicleta" text="Una opción práctica para recorridos cortos." />
