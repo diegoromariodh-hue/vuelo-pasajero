@@ -2353,7 +2353,7 @@ const DELIVERY_FIELDS = [
   ["phone", "WhatsApp del destinatario", "tel", 24],
   ["address", "Dirección de entrega", "text", 240],
 ];
-const emptyDelivery = { recipient: "", phone: "", address: "", fee: "", instructions: "", destination_lat: null, destination_lng: null };
+const emptyDelivery = { recipient: "", phone: "", address: "", instructions: "", destination_lat: null, destination_lng: null };
 
 function StoreMode({ userId, leave }) {
   const [store, setStore] = useState(null);
@@ -2364,13 +2364,15 @@ function StoreMode({ userId, leave }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [quote, setQuote] = useState(null);
+  const [liveJob, setLiveJob] = useState(null);
   const requestId = useRef(null);
 
   async function load() {
     const [shop, jobs] = await Promise.all([
       supabase.from("store_applications").select("id,store_name,address,delivery_enabled")
         .eq("applicant_id", userId).eq("status", "approved").maybeSingle(),
-      supabase.from("store_deliveries").select("id,destination_address,recipient_name,fee,status,courier_name,tracking_token,created_at")
+      supabase.from("store_deliveries").select("id,destination_address,recipient_name,fee,distance_km,status,courier_name,tracking_token,created_at")
         .eq("store_user_id", userId).order("created_at", { ascending: false }).limit(50),
     ]);
     setLoading(false);
@@ -2395,13 +2397,15 @@ function StoreMode({ userId, leave }) {
 
   async function saveDestination(_target, lat, lng) {
     setBusy(true);
-    const { data, error } = await supabase.rpc("vuelo_in_ometepe", { lat, lng });
+    setQuote(null);
+    setMessage("");
+    const { data, error } = await supabase.rpc("vuelo_delivery_quote", { p_store: store.id, p_lat: lat, p_lng: lng }).single();
     setBusy(false);
-    if (error || data !== true) {
-      setMessage(error ? "No pudimos validar el destino." : "Elegí un destino dentro de Ometepe.");
+    if (error || !data) {
+      setMessage(error?.code === "P0001" ? error.message : "No pudimos cotizar la ruta. Volvé a intentar.");
       return false;
     }
-    setMessage("Destino guardado.");
+    setQuote(data);
     setForm((current) => ({ ...current, destination_lat: lat, destination_lng: lng }));
     return true;
   }
@@ -2414,8 +2418,8 @@ function StoreMode({ userId, leave }) {
       setMessage("Revisá el nombre, el WhatsApp y la dirección del destinatario.");
       return;
     }
-    if (form.destination_lat == null) {
-      setMessage("Guardá el destino en el mapa.");
+    if (!quote || form.destination_lat == null) {
+      setMessage("Guardá el destino en el mapa para calcular la tarifa.");
       return;
     }
     setBusy(true);
@@ -2424,7 +2428,7 @@ function StoreMode({ userId, leave }) {
     const { error } = await supabase.rpc("vuelo_create_delivery", {
       p_id: requestId.current, p_store: store.id, p_recipient: form.recipient, p_phone: phone,
       p_address: form.address, p_lat: form.destination_lat, p_lng: form.destination_lng,
-      p_fee: Number(form.fee), p_instructions: form.instructions,
+      p_fee: quote.fee, p_instructions: form.instructions,
     });
     setBusy(false);
     if (error) {
@@ -2432,6 +2436,7 @@ function StoreMode({ userId, leave }) {
       return;
     }
     requestId.current = null;
+    setQuote(null);
     setForm(emptyDelivery);
     setOpen(false);
     setMessage("¡Listo! La entrega está buscando motorizado.");
@@ -2478,13 +2483,23 @@ function StoreMode({ userId, leave }) {
           <input id={"delivery-" + name} type={type} maxLength={maxLength} value={form[name]} onChange={(e) => setField(name, e.target.value)} required />
         </React.Fragment>)}
         <RidePointPicker form={form} savePoint={saveDestination} destinationOnly disabled={busy}
-          clearPoint={() => setForm((current) => ({ ...current, destination_lat: null, destination_lng: null }))} />
-        <label htmlFor="delivery-fee">Tarifa ofrecida al motorizado (C$)</label>
-        <input id="delivery-fee" type="number" min="1" max="10000" step="0.01" value={form.fee} onChange={(e) => setField("fee", e.target.value)} required />
+          clearPoint={() => {
+            setQuote(null);
+            setForm((current) => ({ ...current, destination_lat: null, destination_lng: null }));
+          }} />
+        <div className="profile-help-note">
+          <div>
+            <strong>Tarifa automática · C$12 por km · mínimo C$50</strong>
+            {quote
+              ? <p role="status">{Number(quote.distance_km).toFixed(2)} km estimados por carretera · <strong>C$ {Number(quote.fee).toFixed(2)}</strong></p>
+              : <p>Guardá el destino para ver cuánto cuesta el envío.</p>}
+            <small>Datos viales <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a> · <a href="/ometepe-delivery-roads.json" download>Descargar datos ODbL</a></small>
+          </div>
+        </div>
         <p>El pedido debe estar pagado. La tienda paga el envío directamente al motorizado.</p>
         <label htmlFor="delivery-note">Instrucciones (opcional)</label>
         <input id="delivery-note" maxLength={240} value={form.instructions} onChange={(e) => setField("instructions", e.target.value)} />
-        <button type="submit" disabled={busy}>{busy ? "Procesando…" : "Enviar solicitud"}</button>
+        <button type="submit" disabled={busy || !quote}>{busy ? "Procesando…" : "Enviar solicitud"}</button>
         <button type="button" className="ride-secondary" onClick={() => setOpen(false)} disabled={busy}>Cerrar formulario</button>
       </form>
     </div>}
@@ -2498,11 +2513,17 @@ function StoreMode({ userId, leave }) {
         return <article key={job.id} className="offer-card">
           <h3>{job.recipient_name}</h3>
           <p><strong>{DELIVERY_STATUS[job.status]}</strong> · C$ {Number(job.fee).toFixed(2)}</p>
-          <p>{job.destination_address}</p>
+          <p>{job.destination_address}{job.distance_km != null && ` · ${Number(job.distance_km).toFixed(2)} km`}</p>
           {job.courier_name && <p>Motorizado: {job.courier_name}</p>}
           <p>{new Date(job.created_at).toLocaleString("es-NI")}</p>
-          <a href={tracking.href} target="_blank" rel="noreferrer">Ver seguimiento</a>
+          <button type="button" className="profile-upload-wide" onClick={() => setLiveJob(liveJob === job.id ? null : job.id)}>
+            {liveJob === job.id ? "Ocultar seguimiento" : "Ver seguimiento en vivo"}
+          </button>
+          {liveJob === job.id && <DeliveryTracking key={job.id} token={job.tracking_token} embedded />}
+          <a href={tracking.href} target="_blank" rel="noreferrer">Abrir enlace del cliente</a>
           <button type="button" className="profile-upload-wide" onClick={() => copyTracking(tracking.href)}>Copiar enlace para el cliente</button>
+          <a href={"https://wa.me/?text=" + encodeURIComponent("Seguí tu entrega de VUELO: " + tracking.href)}
+            target="_blank" rel="noreferrer" className="profile-upload-wide">Compartir por WhatsApp</a>
           {job.status === "pending" && <button type="button" className="profile-upload-wide" disabled={busy} onClick={() => cancel(job.id)}>Cancelar solicitud</button>}
         </article>;
       })}
@@ -2510,7 +2531,41 @@ function StoreMode({ userId, leave }) {
   </section>;
 }
 
-function DeliveryTracking({ token }) {
+function DeliveryLiveMap({ latitude, longitude }) {
+  const host = useRef(null);
+  const map = useRef(null);
+  const marker = useRef(null);
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    const leaflet = window.L;
+    if (!leaflet) {
+      setUnavailable(true);
+      return;
+    }
+    const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView([latitude, longitude], 15);
+    leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(instance);
+    marker.current = leaflet.circleMarker([latitude, longitude], {
+      radius: 10, color: "#fff", weight: 3, fillColor: "#087a4b", fillOpacity: 1,
+    }).bindTooltip("Motorizado", { permanent: true, direction: "top" }).addTo(instance);
+    map.current = instance;
+    return () => { instance.remove(); map.current = null; marker.current = null; };
+  }, []);
+
+  useEffect(() => {
+    if (!map.current || !marker.current) return;
+    const position = [latitude, longitude];
+    marker.current.setLatLng(position);
+    if (!map.current.getBounds().pad(-0.2).contains(position)) map.current.panTo(position);
+  }, [latitude, longitude]);
+
+  if (unavailable) return <p>El mapa no pudo cargar. El estado de la entrega se mantiene disponible.</p>;
+  return <div className="ride-map-frame"><div className="ride-map-canvas" ref={host} aria-label="Ubicación del motorizado en el mapa" /></div>;
+}
+
+function DeliveryTracking({ token, embedded = false }) {
   const [job, setJob] = useState(null);
   const [message, setMessage] = useState("Consultando entrega…");
 
@@ -2519,24 +2574,45 @@ function DeliveryTracking({ token }) {
       setMessage("Este enlace de seguimiento no es válido.");
       return;
     }
+    let current = true;
+    let busy = false;
     async function load() {
-      const { data, error } = await supabase.rpc("vuelo_delivery_public_status", { p_token: token }).maybeSingle();
-      if (error) setMessage("No pudimos consultar el estado. Volvé a intentar en un momento.");
-      else {
+      if (busy) return;
+      busy = true;
+      const { data, error } = await supabase.rpc("vuelo_delivery_live_status", { p_token: token }).maybeSingle();
+      busy = false;
+      if (!current) return;
+      if (error) {
+        setJob((last) => last && { ...last, latitude: null, longitude: null });
+        setMessage("Seguimiento sin conexión. Volveremos a intentar.");
+      } else {
         setJob(data);
         setMessage(data ? "" : "No encontramos esta entrega.");
       }
     }
     void load();
-    const timer = setInterval(load, 20000);
-    return () => clearInterval(timer);
+    const timer = setInterval(load, 8000);
+    document.addEventListener("visibilitychange", load);
+    return () => {
+      current = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", load);
+    };
   }, [token]);
 
-  return <div className="app"><main><section className="page profile-page"><div className="profile-section">
-    <h1>Seguimiento de tu entrega</h1>
-    {job && <><p role="status"><strong>{DELIVERY_STATUS[job.status]}</strong></p><p>Actualizado {new Date(job.updated_at).toLocaleString("es-NI")}</p></>}
+  const panel = <div className="profile-section">
+    <h2>Seguimiento en vivo</h2>
+    {job && <>
+      <p role="status"><strong>{DELIVERY_STATUS[job.status]}</strong></p>
+      {job.status === "picked_up" && job.latitude != null && job.longitude != null
+        ? <><DeliveryLiveMap latitude={job.latitude} longitude={job.longitude} /><p>Última ubicación {new Date(job.location_at).toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p></>
+        : job.status === "picked_up" && !message && <p>Esperando señal de ubicación del motorizado.</p>}
+      {job.status === "accepted" && <p>El mapa estará disponible cuando recoja el paquete y active su ubicación.</p>}
+    </>}
     {message && <p role="status">{message}</p>}
-  </div></section></main></div>;
+  </div>;
+  if (embedded) return panel;
+  return <div className="app"><main><section className="page profile-page"><h1>Seguimiento de tu entrega</h1>{panel}</section></main></div>;
 }
 
 async function optimizeProfileImage(file) {
