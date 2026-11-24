@@ -374,71 +374,72 @@ function RideChat({ rideId, userId }) {
 function NotificationInbox({userId,onNavigate}) {
   const [items,setItems]=useState([]);
   const [errorText,setErrorText]=useState("");
-
+  const [loading,setLoading]=useState(true);
   useEffect(()=>{
     let active=true;
     let request=0;
     async function refresh() {
       const current=++request;
       const {data,error}=await supabase.from("vuelo_notifications")
-        .select("id,kind,title,body,read_at").eq("recipient",userId)
+        .select("id,kind,title,body,read_at,created_at,ride_id").eq("recipient",userId)
         .order("id",{ascending:false}).limit(20);
       if (!active || current!==request) return;
       if (error) setErrorText("No se pudieron actualizar los avisos.");
-      else {
-        setErrorText("");
-        setItems(data||[]);
-      }
+      else {setErrorText("");setItems(data||[]);}
+      setLoading(false);
     }
     const channel=supabase.channel("vuelo-inbox:"+userId)
       .on("postgres_changes",{event:"*",schema:"public",table:"vuelo_notifications",filter:"recipient=eq."+userId},refresh)
       .subscribe((status)=>{if(status==="SUBSCRIBED") void refresh();});
-    const timer=window.setInterval(()=>{if(!document.hidden) void refresh();},12000);
+    const timer=window.setInterval(()=>{if(!document.hidden) void refresh();},15000);
     document.addEventListener("visibilitychange",refresh);
     void refresh();
     return ()=>{
-      active=false;
-      window.clearInterval(timer);
+      active=false;window.clearInterval(timer);
       document.removeEventListener("visibilitychange",refresh);
       void supabase.removeChannel(channel);
     };
   },[userId]);
 
   async function open(item) {
-    const view=(["offer","ride_status","chat"].includes(item.kind) ? "offers" : null);
+    const destinations={offer:"offers",ride_status:"offers",chat:"offers",completed:"history",cancelled:"offers"};
     if (!item.read_at) {
       const read_at=new Date().toISOString();
       const {error}=await supabase.from("vuelo_notifications").update({read_at}).eq("id",item.id);
-      if (error) {
-        setErrorText("No se pudo marcar el aviso como leído.");
-        return;
-      }
-      setItems((previous)=>previous.map((entry)=>entry.id===item.id?{...entry,read_at}:entry));
+      if (error) {setErrorText("No se pudo marcar el aviso como leído. Volvé a intentarlo.");return;}
+      setItems(previous=>previous.map(entry=>entry.id===item.id?{...entry,read_at}:entry));
     }
-    if (view) onNavigate(view);
+    const destination=destinations[item.kind];
+    if(destination) onNavigate(destination);
   }
 
-  const unread=items.filter((item)=>!item.read_at);
-  return <details className="page" style={{background:"#fff",border:"1px solid #dbe5e1",borderRadius:16,padding:12}}>
-    <summary style={{cursor:"pointer",fontWeight:800}}>
-      Notificaciones{unread.length ? " ("+unread.length+")" : ""}
-      <span aria-live="polite">{unread.length ? " · "+unread[0].title : ""}</span>
-    </summary>
-    {errorText && <p role="status">{errorText}</p>}
-    {!items.length && !errorText && <p>Todavía no tenés avisos.</p>}
-    {items.length>0 && <ul style={{listStyle:"none",padding:0}}>
-      {items.map((item)=><li key={item.id} style={{borderTop:"1px solid #dbe5e1",padding:"10px 0"}}>
-        <strong>{item.title}</strong>
-        <p style={{whiteSpace:"pre-wrap",margin:"4px 0",overflowWrap:"anywhere"}}>{item.body}</p>
-        <button className="mini" type="button" onClick={()=>open(item)} hidden={item.kind==="admin" && Boolean(item.read_at)}
-          style={{padding:"8px 12px",background:"#e9fbf3",color:"#067451",border:"1px solid #a9d4c3",borderRadius:10}}>
-          {item.kind==="admin" ? "Marcar como leído" : "Ver viaje"}
-        </button>
-      </li>)}
-    </ul>}
-  </details>;
+  const unread=items.filter(item=>!item.read_at);
+  return <section className="page notification-panel" aria-label="Centro de notificaciones">
+    <details className="notification-drawer">
+      <summary className="notification-summary">
+        <span className="notification-summary-main"><strong>Notificaciones</strong><small>{loading?"Actualizando avisos":unread.length?unread.length+" sin leer":"Estás al día"}</small></span>
+        <span className="notification-count" aria-label={unread.length+" notificaciones sin leer"}>{unread.length}</span>
+        <span className="notification-chevron" aria-hidden="true">⌄</span>
+      </summary>
+      <div className="notification-content" aria-live="polite">
+        {errorText && <p className="notification-error" role="alert">{errorText}</p>}
+        {loading && !items.length && <p className="notification-empty">Cargando notificaciones…</p>}
+        {!loading && !items.length && !errorText && <p className="notification-empty">Todavía no tenés avisos. Te mostraremos aquí las novedades de tus viajes.</p>}
+        {items.map(item=><article className={"notification-item"+(!item.read_at?" is-unread":"")} key={item.id}>
+          <span className={"notification-dot "+(item.read_at?"is-read":"")} aria-hidden="true"/>
+          <div className="notification-item-copy">
+            <div className="notification-item-heading"><strong>{item.title}</strong>{!item.read_at&&<span className="notification-new">Nuevo</span>}</div>
+            <p>{item.body}</p>
+            <small>{item.created_at?new Date(item.created_at).toLocaleString("es-NI",{dateStyle:"short",timeStyle:"short"}):""}</small>
+          </div>
+          {(destinations[item.kind]||(!item.read_at&&item.kind==="admin"))&&<button className="notification-action" type="button" onClick={()=>open(item)}>
+            {destinations[item.kind]?(item.kind==="request"?"Ver solicitud":item.kind==="chat"?"Abrir chat":item.kind==="completed"?"Ver historial":"Ver viaje"):"Marcar leído"}
+          </button>}
+        </article>)}
+      </div>
+    </details>
+  </section>;
 }
-
 function PostRideSurvey({ userId, notify }) {
   const [tripId, setTripId] = useState(null);
   const dismissed = React.useRef(new Set());
