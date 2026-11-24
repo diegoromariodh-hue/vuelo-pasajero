@@ -1206,9 +1206,9 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
         </a>
       ) : (
         <div className="ad-placeholder">
-          <span>Espacio publicitario disponible</span>
-          <h3>Tu negocio puede aparecer aquí</h3>
-          <p>Este espacio está reservado para negocios locales, hoteles, restaurantes, tours o servicios de Ometepe.</p>
+          <span>¡Un espacio para los negocios de la isla!</span>
+          <h3>¡Que tu negocio también salga a pasear!</h3>
+          <p>¿Tenés un negocio, hotel, restaurante o tour? Tu marca puede llegar a más personas desde VUELO.</p>
         </div>
       )}
 
