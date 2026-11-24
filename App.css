@@ -1037,3 +1037,14 @@ body{background:#f5faf6;color:#17372a}
  .rental-coming-link{font-size:.72rem}
 }
 @media(prefers-reduced-motion:reduce){.uber-destination-search,.uber-ride-option{transition:none}}
+
+
+/* VUELO passenger home — local store discovery teaser */
+.explore-stores-coming{position:relative;display:flex;align-items:flex-start;gap:15px;overflow:hidden;padding:20px;border:1.5px solid #cfe6d6;border-radius:21px;background:linear-gradient(115deg,#eff9f2 0%,#fff 78%);box-shadow:0 5px 0 #e8f2eb}
+.explore-stores-icon{width:54px;height:54px;flex:0 0 54px;display:grid;place-items:center;border-radius:17px;background:#087a4b;color:#fff;box-shadow:0 5px 12px #087a4b22}
+.explore-stores-copy{min-width:0;position:relative;z-index:1}
+.explore-stores-kicker{display:inline-block;color:#087a4b;font-size:.67rem;font-weight:950;letter-spacing:.07em}
+.explore-stores-copy h2{margin:7px 0 6px;color:#17372a;font-size:clamp(1.15rem,3.4vw,1.45rem);font-weight:950;letter-spacing:-.05em}
+.explore-stores-copy p{max-width:490px;margin:0;color:#607368;font-size:.84rem;line-height:1.55}
+.explore-stores-link{display:inline-flex;align-items:center;gap:7px;margin-top:12px;color:#087a4b;font-size:.82rem;font-weight:950}
+@media(max-width:560px){.explore-stores-coming{gap:11px;padding:16px}.explore-stores-icon{width:46px;height:46px;flex-basis:46px;border-radius:14px}.explore-stores-copy p{font-size:.78rem}}
