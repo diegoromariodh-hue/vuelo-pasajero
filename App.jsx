@@ -1685,11 +1685,11 @@ function RequestRide({ profile, notify, onCreated }) {
   );
 }
 
-function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
+function RidePointPicker({ form, savePoint, clearPoint, disabled, pickupOnly = false }) {
   const host = React.useRef(null);
   const map = React.useRef(null);
   const markers = React.useRef({});
-  const [target, setTarget] = useState(form.pickup_lat == null ? "pickup" : "destination");
+  const [target, setTarget] = useState(pickupOnly || form.pickup_lat == null ? "pickup" : "destination");
   const [candidate, setCandidate] = useState(null);
   const [mapError, setMapError] = useState(false);
   const { pickup_lat, pickup_lng, destination_lat, destination_lng } = form;
@@ -1700,7 +1700,10 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
       setMapError(true);
       return;
     }
-    const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView([11.50, -85.98], 11);
+    const center = pickupOnly
+      ? (pickup_lat == null ? [11.52, -85.62] : [pickup_lat, pickup_lng])
+      : [11.50, -85.98];
+    const instance = leaflet.map(host.current, { scrollWheelZoom: false }).setView(center, 11);
     leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(instance);
@@ -1731,29 +1734,29 @@ function RidePointPicker({ form, savePoint, clearPoint, disabled }) {
     const point = candidate || map.current.getCenter();
     if (await savePoint(target, point.lat, point.lng)) {
       setCandidate(null);
-      if (target === "pickup" && destination_lat == null) setTarget("destination");
+      if (!pickupOnly && target === "pickup" && destination_lat == null) setTarget("destination");
     }
   }
 
-  if (mapError) return <p>El mapa no está disponible. Podés continuar con las direcciones escritas.</p>;
+  if (mapError) return <p>{pickupOnly ? "El mapa no está disponible. Podés usar la ubicación del dispositivo." : "El mapa no está disponible. Podés continuar con las direcciones escritas."}</p>;
 
-  return <section id="ride-point-picker" className="ride-point-picker" aria-label="Mapa de recogida y destino">
-    <div className="ride-request-options">
+  return <section id={pickupOnly ? "store-point-picker" : "ride-point-picker"} className="ride-point-picker" aria-label={pickupOnly ? "Mapa del punto de recogida" : "Mapa de recogida y destino"}>
+    {!pickupOnly && <div className="ride-request-options">
       <button type="button" className="ride-secondary" aria-pressed={target === "pickup"}
         disabled={disabled} onClick={() => { setTarget("pickup"); setCandidate(null); }}><span className="ride-point-letter">A</span> Recogida{pickup_lat != null ? " ✓" : ""}</button>
       <button type="button" className="ride-secondary" aria-pressed={target === "destination"}
         disabled={disabled} onClick={() => { setTarget("destination"); setCandidate(null); }}><span className="ride-point-letter" data-point="B">B</span> Destino{destination_lat != null ? " ✓" : ""}</button>
-    </div>
+    </div>}
     <div className="ride-map-instructions"><strong>{target === "pickup" ? "Marcá tu punto de recogida" : "Marcá tu destino"}</strong><span>{target === "pickup" ? "Mové el mapa hasta el lugar exacto donde te esperamos." : "Mové el mapa hasta el lugar al que querés llegar."} Después tocá “Guardar punto”.</span></div>
     <div className="ride-map-frame">
       <div className="ride-map-canvas" ref={host} aria-label="Mapa de Ometepe" />
       {!candidate && <span className="ride-map-crosshair" aria-hidden="true">+</span>}
     </div>
     <button type="button" onClick={confirmPoint} disabled={disabled}>
-      {disabled ? "Validando ubicación…" : "Guardar " + (target === "pickup" ? "punto A · Recogida" : "punto B · Destino")}
+      {disabled ? "Validando ubicación…" : pickupOnly ? "Guardar punto de recogida" : "Guardar " + (target === "pickup" ? "punto A · Recogida" : "punto B · Destino")}
     </button>
     {(target === "pickup" ? pickup_lat != null : destination_lat != null) &&
-      <button type="button" className="ride-secondary ride-clear-point" disabled={disabled} onClick={() => { clearPoint(target); setCandidate(null); }}>Quitar {target === "pickup" ? "punto A" : "punto B"}</button>}
+      <button type="button" className="ride-secondary ride-clear-point" disabled={disabled} onClick={() => { clearPoint(target); setCandidate(null); }}>Quitar {pickupOnly ? "punto de recogida" : target === "pickup" ? "punto A" : "punto B"}</button>}
   </section>;
 }
 
@@ -2324,6 +2327,149 @@ function EmailMarketingPreference({profile}){
  async function toggle(){setSaving(true);setMessage("");const {data,error}=await supabase.functions.invoke("vuelo-marketing-preferences",{body:{action:enabled?"unsubscribe":"subscribe",audience:"passenger"}});setSaving(false);if(error){setMessage("No pudimos guardar el cambio. Intentá nuevamente.");return;}setEnabled(!enabled);setMessage(data?.message||"Preferencia actualizada.");}
  return <div className="profile-section email-preference"><h2>Novedades de VUELO</h2><p>Recibí mensajes breves, promociones y novedades. Sin saturarte.</p><button type="button" onClick={toggle} disabled={loading||saving}>{loading?"Cargando…":saving?"Guardando…":enabled?"Dejar de recibir novedades":"Quiero recibir novedades"}</button>{message&&<small role="status">{message}</small>}<small>Podés cambiar esta preferencia cuando quieras.</small></div>
 }
+function StoreApplication({ profile }) {
+  const [application, setApplication] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState({
+    store_name: "", whatsapp: profile.phone || "", pickup_reference: "", pickup_lat: null, pickup_lng: null,
+  });
+
+  async function load() {
+    setLoading(true);
+    const { data, error } = await supabase.from("store_applications")
+      .select("id,store_name,whatsapp,pickup_reference,pickup_lat,pickup_lng,status")
+      .eq("applicant_id", profile.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    setLoadFailed(Boolean(error));
+    if (!error) {
+      setApplication(data);
+      if (data?.status === "rejected") {
+        const { store_name, whatsapp, pickup_reference, pickup_lat, pickup_lng } = data;
+        setForm({ store_name, whatsapp, pickup_reference, pickup_lat, pickup_lng });
+      }
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function savePickup(_target, lat, lng) {
+    setLocating(true);
+    setMessage("");
+    const { data, error } = await supabase.rpc("vuelo_in_ometepe", { lat, lng });
+    setLocating(false);
+    if (error || data !== true) {
+      setMessage(error ? "No pudimos validar el punto. Intentá de nuevo." : "Elegí un punto de recogida dentro de Ometepe.");
+      return false;
+    }
+    setForm((current) => ({ ...current, pickup_lat: lat, pickup_lng: lng }));
+    return true;
+  }
+
+  function locatePickup() {
+    if (!navigator.geolocation) {
+      setMessage("La ubicación del dispositivo no está disponible. Marcá el punto en el mapa.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => { void savePickup("pickup", coords.latitude, coords.longitude); },
+      () => { setLocating(false); setMessage("No pudimos obtener tu ubicación. Marcá el punto en el mapa."); },
+      { timeout: 10000, enableHighAccuracy: true },
+    );
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    const storeName = form.store_name.trim();
+    const whatsapp = form.whatsapp.trim().replace(/[().\s-]/g, "");
+    if (storeName.length < 2 || !/^\+?[1-9]\d{7,14}$/.test(whatsapp)) {
+      setMessage("Ingresá el nombre de la tienda y un WhatsApp válido.");
+      return;
+    }
+    if (form.pickup_lat == null || form.pickup_lng == null) {
+      setMessage("Guardá tu punto de recogida antes de enviar la solicitud.");
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    const { data, error } = await supabase.from("store_applications").insert({
+      ...form, store_name: storeName, whatsapp, pickup_reference: form.pickup_reference.trim(),
+    }).select("id,store_name,status").single();
+    setSaving(false);
+    if (error?.code === "23505") {
+      setOpen(false);
+      await load();
+      return;
+    }
+    if (error) {
+      setMessage("No pudimos enviar la solicitud. Revisá los datos e intentá otra vez.");
+      return;
+    }
+    setApplication(data);
+    setOpen(false);
+  }
+
+  const status = application?.status;
+  const canApply = !loading && !loadFailed && (!status || status === "rejected");
+
+  return (
+    <div className="profile-section">
+      <h2>Mi tienda</h2>
+      {loading && <p role="status">Consultando tu solicitud…</p>}
+      {!loading && loadFailed && (
+        <>
+          <p role="alert">No pudimos consultar tu solicitud.</p>
+          <button type="button" className="profile-upload-wide" onClick={load}>Intentar de nuevo</button>
+        </>
+      )}
+      {!loading && !loadFailed && status === "pending" && (
+        <>
+          <p role="status"><strong>{application.store_name}</strong> · En revisión</p>
+          <p>Recibimos tu solicitud. Volvé a Perfil para consultar el resultado.</p>
+          <button type="button" className="profile-upload-wide" onClick={load}>Actualizar estado</button>
+        </>
+      )}
+      {!loading && !loadFailed && status === "approved" && (
+        <p role="status"><strong>{application.store_name}</strong> · Solicitud aprobada</p>
+      )}
+      {canApply && status === "rejected" && (
+        <p role="status">Tu solicitud fue rechazada. Podés revisar tus datos y volver a enviarla.</p>
+      )}
+      {canApply && !open && (
+        <button type="button" className="profile-upload-wide" onClick={() => { setMessage(""); setOpen(true); }}>
+          Solicitar activación de mi tienda
+        </button>
+      )}
+      {canApply && open && (
+        <form className="ride-form ride-request" onSubmit={submit}>
+          <p>La solicitud se vinculará a tu cuenta de VUELO.</p>
+          <label htmlFor="store-name">Nombre de la tienda</label>
+          <input id="store-name" value={form.store_name} onChange={(event) => setForm({ ...form, store_name: event.target.value })} minLength={2} maxLength={100} required />
+          <label htmlFor="store-whatsapp">WhatsApp del negocio</label>
+          <input id="store-whatsapp" type="tel" autoComplete="tel" value={form.whatsapp} onChange={(event) => setForm({ ...form, whatsapp: event.target.value })} maxLength={24} required />
+          <RidePointPicker form={form} savePoint={savePickup}
+            clearPoint={() => setForm({ ...form, pickup_lat: null, pickup_lng: null })}
+            disabled={locating || saving} pickupOnly />
+          <button type="button" className="ride-secondary" onClick={locatePickup} disabled={locating || saving}>
+            <MapPin size={16} /> Usar mi ubicación como recogida
+          </button>
+          {form.pickup_lat != null && <p role="status">Punto de recogida guardado.</p>}
+          <label htmlFor="store-reference">Referencia de la dirección (opcional)</label>
+          <input id="store-reference" value={form.pickup_reference} onChange={(event) => setForm({ ...form, pickup_reference: event.target.value })} maxLength={240} />
+          {message && <p className="profile-mode-error" role="alert">{message}</p>}
+          <button type="submit" disabled={saving || locating}>{saving ? "Enviando…" : "Enviar solicitud"}</button>
+          <button type="button" className="ride-secondary" onClick={() => setOpen(false)} disabled={saving || locating}>Cerrar formulario</button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function Profile({ profile, onSwitchMode, switchingMode, handoffError }) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [uploading, setUploading] = useState(false);
@@ -2421,6 +2567,7 @@ function Profile({ profile, onSwitchMode, switchingMode, handoffError }) {
       </button>
       {handoffError && <div className="profile-mode-error" role="alert">{handoffError}</div>}
 
+      <StoreApplication key={profile.id} profile={profile} />
       <EmailMarketingPreference profile={profile}/>
 
       <div className="profile-help-note">
