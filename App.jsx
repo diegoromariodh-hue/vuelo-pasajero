@@ -1,7 +1,8 @@
 import logoVuelo from "./logoVuelo.png";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
-  ArrowRight,\n  Search,
+  ArrowRight,
+  Search,
   Bell,
   Bike,
   Car,
@@ -1116,35 +1117,35 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
     <section className="page passenger-home-page">
       <div className="uber-home-heading">
         <div>
-          <span className="uber-home-greeting">Hola, {firstName} 👋</span>
-          <h1>¿A dónde vamos?</h1>
-          <p>Tu próximo viaje está a un toque.</p>
+          <span className="uber-home-greeting">¡Qué bueno verte, {firstName}! 👋</span>
+          <h1>¿A dónde te llevo hoy?</h1>
+          <p>Vos elegís el destino. ¡Nosotros ponemos el viaje en marcha!</p>
         </div>
         <div className="uber-home-avatar"><MapPin size={24}/></div>
       </div>
 
       <button type="button" className="uber-destination-search" onClick={goRequest}>
         <span className="uber-search-symbol"><Search size={22}/></span>
-        <span className="uber-search-copy"><strong>¿A dónde querés ir?</strong><small>Elegí tu destino y solicitá un viaje</small></span>
+        <span className="uber-search-copy"><strong>¿A dónde querés ir?</strong><small>Decinos el destino. ¡Del resto nos encargamos!</small></span>
         <ArrowRight size={20}/>
       </button>
 
       <div className="uber-ride-options" aria-label="Opciones de viaje">
         <button type="button" className="uber-ride-option" onClick={goRequest}>
           <span className="uber-option-illustration car"><Car size={31}/></span>
-          <strong>Vehículo</strong><small>Viajá con comodidad</small>
+          <strong>¡En carro!</strong><small>Subite y viajá cómodo</small>
         </button>
         <button type="button" className="uber-ride-option" onClick={goRequest}>
           <span className="uber-option-illustration moto"><Bike size={31}/></span>
-          <strong>Motocicleta</strong><small>Práctica y rápida</small>
+          <strong>¡En moto!</strong><small>Ágil para llegar a tiempo</small>
         </button>
       </div>
 
       <section className="rental-coming-soon" aria-label="Alquiler próximamente">
         <div className="rental-coming-copy">
           <span className="rental-soon-pill"><Clock size={13}/> PRÓXIMAMENTE</span>
-          <h2>¿Preferís manejar vos?</h2>
-          <p>Muy pronto vas a poder alquilar vehículos y motocicletas desde VUELO.</p>
+          <h2>¿Y si las llaves fueran tuyas? 🔑</h2>
+          <p>¡Se viene algo buenísimo! Muy pronto vas a poder alquilar un carro o una moto y salir a explorar por tu cuenta.</p>
           <span className="rental-coming-link">Alquiler de vehículos y motos <ArrowRight size={16}/></span>
         </div>
         <div className="rental-coming-art" aria-hidden="true">
@@ -1214,9 +1215,9 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
       <section className="explore-stores-coming" aria-label="Explorar tiendas próximamente">
         <div className="explore-stores-icon"><Store size={27}/></div>
         <div className="explore-stores-copy">
-          <span className="explore-stores-kicker">PRÓXIMAMENTE EN VUELO</span>
-          <h2>¡Hay mucho por descubrir!</h2>
-          <p>Muy pronto vas a poder explorar tiendas de la isla, descubrir sus productos y pedir lo que necesitás sin salir de VUELO.</p>
+          <span className="explore-stores-kicker">¡SE VIENE ALGO RICO! · PRÓXIMAMENTE</span>
+          <h2>¡La isla está llena de tesoros!</h2>
+          <p>Muy pronto vas a descubrir tiendas locales, encontrar tus productos favoritos y pedirlos desde VUELO. ¡Apoyá lo local con un toque!</p>
           <span className="explore-stores-link">Explorar tiendas <ArrowRight size={16}/></span>
         </div>
       </section>
