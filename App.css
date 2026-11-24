@@ -935,3 +935,16 @@ body{background:#f5faf6;color:#17372a}
 .app .ride-request-choice legend{padding:0 5px}
 .app .ride-request-options{gap:8px}
 @media(max-width:360px){.app .ride-wizard-actions{gap:8px;grid-template-columns:1fr 1.6fr}}
+
+
+/* UX: inbox filters, chat navigation and consistent empty states */
+.app .notification-filters{display:flex;gap:8px;padding:8px 0 12px}
+.app .notification-filters button,.app .ride-chat-latest{min-height:40px;border:1px solid #c4dacf;border-radius:10px;padding:8px 12px;background:#fff;color:#075c38;font-size:.82rem;font-weight:700}
+.app .notification-filters button[aria-pressed=true]{background:#075c38;color:#fff;border-color:#075c38}
+.app .ride-chat-latest{justify-self:center}
+.app .empty-card{padding:clamp(18px,4vw,28px);border-radius:16px;line-height:1.55}
+.app .empty-card p{color:#526b5d;line-height:1.55}
+.app .section-title{gap:10px;flex-wrap:wrap}
+.app .section-title h2{font-size:clamp(1.15rem,4vw,1.45rem);line-height:1.25}
+.app .notification-item-copy p{font-weight:400}
+@media(prefers-reduced-motion:reduce){.app .spin{animation:none}}
