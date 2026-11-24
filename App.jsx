@@ -18,6 +18,7 @@ import {
   Share2,
   ShieldCheck,
   Star,
+  Store,
   User,
   Upload,
   Wallet,
@@ -81,7 +82,11 @@ function PassengerApp() {
   const [settings, setSettings] = useState(null);
   const [adCard, setAdCard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState(() => window.location.pathname === "/reset-password" ? "reset-password" : (sessionStorage.getItem("vuelo-passenger-view") || "home"));
+  const [view, setView] = useState(() => {
+    if (window.location.pathname === "/reset-password") return "reset-password";
+    if (new URLSearchParams(window.location.search).get("vista") === "perfil") return "profile";
+    return sessionStorage.getItem("vuelo-passenger-view") || "home";
+  });
   const [toast, setToast] = useState("");
 
   const [switchingMode, setSwitchingMode] = useState(false);
@@ -136,7 +141,14 @@ function PassengerApp() {
 
 
   useEffect(() => {
-    if (view !== "reset-password") sessionStorage.setItem("vuelo-passenger-view", view);
+    if (view !== "reset-password") {
+      sessionStorage.setItem("vuelo-passenger-view", view);
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("vista") === "perfil") {
+        url.searchParams.delete("vista");
+        window.history.replaceState(window.history.state, "", url);
+      }
+    }
   }, [view]);
 
   useEffect(() => {
@@ -271,7 +283,9 @@ function PassengerApp() {
         {view === "offers" && <Offers notify={notify} userId={session.user.id} />}
         {view === "history" && <History notify={notify} />}
         {view === "store" && <StoreMode key={session.user.id} userId={session.user.id} leave={() => setView("profile")} />}
-        {view === "profile" && <Profile profile={profile} onOpenStore={() => setView("store")} onSwitchMode={switchMode} switchingMode={switchingMode} handoffError={handoffError} />}
+        {view === "profile" && (profile
+          ? <Profile profile={profile} onOpenStore={() => setView("store")} onSwitchMode={switchMode} switchingMode={switchingMode} handoffError={handoffError} />
+          : <Loading />)}
         <p className="page"><a href="https://vuelonicaragua.online/#privacidad" target="_blank" rel="noreferrer" style={{color:"#067451",textDecoration:"underline"}}>Aviso de privacidad</a></p>
       </main>
 
@@ -2410,6 +2424,28 @@ const DELIVERY_FIELDS = [
 ];
 const emptyDelivery = { recipient: "", phone: "", address: "", instructions: "", destination_lat: null, destination_lng: null };
 
+function StoreLogo({ path, name, size = 64 }) {
+  const [image, setImage] = useState(null);
+
+  useEffect(() => {
+    if (!path) return;
+    let active = true;
+    async function loadLogo() {
+      const { data, error } = await supabase.storage.from("store-logos").createSignedUrl(path, 3600);
+      if (active) setImage(!error && data?.signedUrl ? { path, url: data.signedUrl } : null);
+    }
+    void loadLogo();
+    const timer = setInterval(loadLogo, 50 * 60 * 1000);
+    return () => { active = false; clearInterval(timer); };
+  }, [path]);
+
+  return <span style={{ width: size, height: size, flex: "0 0 auto", display: "grid", placeItems: "center", border: "1px solid #d5e8dc", borderRadius: 14, background: "#fff", color: "#087a4b", overflow: "hidden" }}>
+    {path && image?.path === path
+      ? <img src={image.url} alt={`Logo de ${name}`} width={size} height={size} onError={() => setImage(null)} style={{ objectFit: "contain", padding: 4 }} />
+      : <Store size={Math.round(size * 0.44)} aria-hidden="true" />}
+  </span>;
+}
+
 function StoreMode({ userId, leave }) {
   const [store, setStore] = useState(null);
   const [deliveries, setDeliveries] = useState([]);
@@ -2426,7 +2462,7 @@ function StoreMode({ userId, leave }) {
 
   async function load() {
     const [shop, jobs] = await Promise.all([
-      supabase.from("store_applications").select("id,store_name,address,pickup_lat,pickup_lng,delivery_enabled")
+      supabase.from("store_applications").select("id,store_name,address,pickup_lat,pickup_lng,delivery_enabled,logo_path,partner_opt_in,partner_published")
         .eq("applicant_id", userId).eq("status", "approved").maybeSingle(),
       supabase.from("store_deliveries").select("id,destination_address,pickup_lat,pickup_lng,destination_lat,destination_lng,recipient_name,fee,distance_km,status,courier_name,tracking_token,created_at")
         .eq("store_user_id", userId).order("created_at", { ascending: false }).limit(50),
@@ -2510,6 +2546,20 @@ function StoreMode({ userId, leave }) {
     await load();
   }
 
+  async function changePartnerConsent() {
+    if (!store || busy) return;
+    setBusy(true);
+    const consent = !store.partner_opt_in;
+    const { data, error } = await supabase.rpc("vuelo_set_store_partner_consent", { p_store: store.id, p_consent: consent });
+    setBusy(false);
+    if (error || !data) {
+      setMessage("No pudimos guardar tu preferencia de publicación.");
+      return;
+    }
+    setMessage(consent ? "Preferencia guardada. VUELO puede publicar tu negocio como partner." : "Tu negocio ya no aparece en la landing.");
+    await load();
+  }
+
   async function copyTracking(url) {
     try {
       await navigator.clipboard.writeText(url);
@@ -2522,7 +2572,10 @@ function StoreMode({ userId, leave }) {
   return <section className="page profile-page">
     <div className="profile-section">
       <button type="button" className="profile-upload-wide" onClick={leave}>Volver a modo pasajero</button>
-      <h1>{store?.store_name || "Mi tienda"}</h1>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", marginBlock: 16 }}>
+        {store && <StoreLogo path={store.logo_path} name={store.store_name} />}
+        <h1>{store?.store_name || "Mi tienda"}</h1>
+      </div>
       {store && <p><strong>Recogida</strong><br />{store.address || "Punto registrado al solicitar la activación"}</p>}
       {loading && <p role="status">Cargando Mi tienda…</p>}
       {!loading && !loadError && !store && <p>Consultá tu solicitud de tienda desde Perfil.</p>}
@@ -2563,6 +2616,15 @@ function StoreMode({ userId, leave }) {
         <button type="submit" disabled={busy || !quote}>{busy ? "Procesando…" : "Enviar solicitud"}</button>
         <button type="button" className="ride-secondary" onClick={() => setOpen(false)} disabled={busy}>Cerrar formulario</button>
       </form>
+    </div>}
+    {store && <div className="profile-section">
+      <h2>Mi negocio en la landing</h2>
+      <p>{store.partner_opt_in
+        ? store.partner_published && store.delivery_enabled ? "Tu tienda aparece como partner de VUELO." : "Autorizaste publicar el nombre, rubro y logo de tu tienda. VUELO puede incorporarte a la landing."
+        : "Elegí si querés que VUELO pueda mostrar el nombre, rubro y logo de tu tienda en la landing."}</p>
+      <button type="button" className="profile-upload-wide" disabled={busy} onClick={changePartnerConsent}>
+        {store.partner_opt_in ? "Retirar autorización" : "Autorizar publicación"}
+      </button>
     </div>}
     {(store || loadError) && <div className="profile-section">
       <h2>Mis entregas</h2>
@@ -2728,6 +2790,7 @@ function StoreApplication({ profile, onOpenStore }) {
   const [message, setMessage] = useState("");
   const [logoFile, setLogoFile] = useState(null);
   const [previousLogo, setPreviousLogo] = useState(null);
+  const [partnerOptIn, setPartnerOptIn] = useState(false);
   const uploadedLogo = useRef(null);
   const [form, setForm] = useState({
     store_name: "", owner_name: "", whatsapp: profile.phone || "", address: "", business_category: "",
@@ -2737,7 +2800,7 @@ function StoreApplication({ profile, onOpenStore }) {
   async function load() {
     setLoading(true);
     const { data, error } = await supabase.from("store_applications")
-      .select("id,store_name,owner_name,whatsapp,address,business_category,logo_path,pickup_reference,pickup_lat,pickup_lng,status")
+      .select("id,store_name,owner_name,whatsapp,address,business_category,logo_path,pickup_reference,pickup_lat,pickup_lng,status,delivery_enabled,partner_opt_in")
       .eq("applicant_id", profile.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
     setLoadFailed(Boolean(error));
     if (!error) {
@@ -2746,6 +2809,7 @@ function StoreApplication({ profile, onOpenStore }) {
         const { store_name, owner_name, whatsapp, address, business_category, logo_path, pickup_reference, pickup_lat, pickup_lng } = data;
         setForm({ store_name, owner_name: owner_name || "", whatsapp, address: address || "", business_category: business_category || "", pickup_reference, pickup_lat, pickup_lng });
         setPreviousLogo(logo_path);
+        setPartnerOptIn(data.partner_opt_in);
       }
     }
     setLoading(false);
@@ -2836,7 +2900,7 @@ function StoreApplication({ profile, onOpenStore }) {
     }
     const { data, error } = await supabase.from("store_applications").insert({
       ...form, store_name: storeName, owner_name: ownerName, whatsapp, address,
-      pickup_reference: form.pickup_reference.trim(), logo_path: logoPath,
+      pickup_reference: form.pickup_reference.trim(), logo_path: logoPath, partner_opt_in: partnerOptIn,
     }).select("id,store_name,status").single();
     setSaving(false);
     if (error?.code === "23505") {
@@ -2856,7 +2920,7 @@ function StoreApplication({ profile, onOpenStore }) {
   const canApply = !loading && !loadFailed && (!status || status === "rejected");
 
   return (
-    <div className="profile-section">
+    <div className="profile-section" id="mi-tienda">
       <h2>Mi tienda</h2>
       {loading && <p role="status">Consultando tu solicitud…</p>}
       {!loading && loadFailed && (
@@ -2873,7 +2937,13 @@ function StoreApplication({ profile, onOpenStore }) {
         </>
       )}
       {!loading && !loadFailed && status === "approved" && (
-        <><p role="status"><strong>{application.store_name}</strong> · Solicitud aprobada</p><button type="button" className="profile-upload-wide" onClick={onOpenStore}>Cambiar a Mi tienda</button></>
+        <>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <StoreLogo path={application.logo_path} name={application.store_name} size={48} />
+            <div><strong>{application.store_name}</strong><br /><small>{application.delivery_enabled ? "Tienda activada" : "Nuevas entregas pausadas"}</small></div>
+          </div>
+          <button type="button" className="profile-upload-wide" onClick={onOpenStore}>Ir a Mi tienda <ArrowRight size={18} /></button>
+        </>
       )}
       {canApply && status === "rejected" && (
         <p role="status">Tu solicitud fue rechazada. Podés revisar tus datos y volver a enviarla.</p>
@@ -2912,6 +2982,10 @@ function StoreApplication({ profile, onOpenStore }) {
           {form.pickup_lat != null && <p role="status">Punto de recogida guardado.</p>}
           <label htmlFor="store-reference">Referencia de la dirección (opcional)</label>
           <input id="store-reference" value={form.pickup_reference} onChange={(event) => setForm({ ...form, pickup_reference: event.target.value })} maxLength={240} />
+          <label className="terms-check passenger-terms-check">
+            <input type="checkbox" checked={partnerOptIn} onChange={(event) => setPartnerOptIn(event.target.checked)} />
+            <span>Autorizo que VUELO pueda mostrar el nombre, rubro y logo de mi negocio como partner en su página (opcional).</span>
+          </label>
           {message && <p className="profile-mode-error" role="alert">{message}</p>}
           <button type="submit" disabled={saving || locating}>{saving ? "Enviando…" : "Enviar solicitud"}</button>
           <button type="button" className="ride-secondary" onClick={() => setOpen(false)} disabled={saving || locating}>Cerrar formulario</button>
