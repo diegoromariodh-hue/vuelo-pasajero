@@ -948,3 +948,5 @@ body{background:#f5faf6;color:#17372a}
 .app .section-title h2{font-size:clamp(1.15rem,4vw,1.45rem);line-height:1.25}
 .app .notification-item-copy p{font-weight:400}
 @media(prefers-reduced-motion:reduce){.app .spin{animation:none}}
+
+.app .email-preference{display:grid;gap:9px;padding:16px;background:#f0f7f2;border:1px solid #c4dacf;border-radius:16px}.app .email-preference h2,.app .email-preference p{margin:0}.app .email-preference p,.app .email-preference small{color:#465e51;line-height:1.5}.app .email-preference button{min-height:44px;border:0;border-radius:11px;background:#075c38;color:#fff;padding:11px 15px;font-weight:700}
