@@ -372,6 +372,7 @@ function RideChat({ rideId, userId }) {
 }
 
 function NotificationInbox({userId,onNavigate}) {
+  const destinations = { offer:"offers", ride_status:"offers", chat:"offers", completed:"history", cancelled:"offers" };
   const [items,setItems]=useState([]);
   const [errorText,setErrorText]=useState("");
   const [loading,setLoading]=useState(true);
@@ -402,7 +403,6 @@ function NotificationInbox({userId,onNavigate}) {
   },[userId]);
 
   async function open(item) {
-    const destinations={offer:"offers",ride_status:"offers",chat:"offers",completed:"history",cancelled:"offers"};
     if (!item.read_at) {
       const read_at=new Date().toISOString();
       const {error}=await supabase.from("vuelo_notifications").update({read_at}).eq("id",item.id);
