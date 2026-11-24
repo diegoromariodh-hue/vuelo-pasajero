@@ -2304,6 +2304,12 @@ function History({ notify }) {
   );
 }
 
+function EmailMarketingPreference({profile}){
+ const [enabled,setEnabled]=useState(false),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[message,setMessage]=useState("");
+ useEffect(()=>{let active=true;(async()=>{const {data,error}=await supabase.from("marketing_subscribers").select("id,unsubscribed_at").eq("user_id",profile.id).eq("audience","passenger").maybeSingle();if(!active)return;setEnabled(Boolean(data&&!data.unsubscribed_at));if(error)setMessage("No pudimos consultar tus preferencias.");setLoading(false)})();return()=>{active=false}},[profile.id]);
+ async function toggle(){setSaving(true);setMessage("");const {data,error}=await supabase.functions.invoke("vuelo-marketing-preferences",{body:{action:enabled?"unsubscribe":"subscribe",audience:"passenger"}});setSaving(false);if(error){setMessage("No pudimos guardar el cambio. Intentá nuevamente.");return;}setEnabled(!enabled);setMessage(data?.message||"Preferencia actualizada.");}
+ return <div className="profile-section email-preference"><h2>Novedades de VUELO</h2><p>Recibí mensajes breves, promociones y novedades. Sin saturarte.</p><button type="button" onClick={toggle} disabled={loading||saving}>{loading?"Cargando…":saving?"Guardando…":enabled?"Dejar de recibir novedades":"Quiero recibir novedades"}</button>{message&&<small role="status">{message}</small>}<small>Podés cambiar esta preferencia cuando quieras.</small></div>
+}
 function Profile({ profile, onSwitchMode, switchingMode, handoffError }) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [uploading, setUploading] = useState(false);
@@ -2400,6 +2406,8 @@ function Profile({ profile, onSwitchMode, switchingMode, handoffError }) {
         <ArrowRight size={19}/>
       </button>
       {handoffError && <div className="profile-mode-error" role="alert">{handoffError}</div>}
+
+      <EmailMarketingPreference profile={profile}/>
 
       <div className="profile-help-note">
         <ShieldCheck size={18}/>
