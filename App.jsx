@@ -615,6 +615,7 @@ function AuthScreen() {
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [password, setPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [receiveMarketingEmails, setReceiveMarketingEmails] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [msg, setMsg] = useState("");
   const [sending, setSending] = useState(false);
@@ -691,6 +692,7 @@ function AuthScreen() {
             full_name: fullName.trim(),
             phone: whatsapp.trim(),
             role: "passenger",
+            marketing_email_opt_in: receiveMarketingEmails,
             accepted_terms: true,
             accepted_terms_at: new Date().toISOString(),
           },
@@ -855,6 +857,17 @@ function AuthScreen() {
           </>
         )}
 
+        {mode === "register" && (
+          <label className="terms-check passenger-terms-check">
+            <input
+              type="checkbox"
+              checked={receiveMarketingEmails}
+              onChange={(e) => setReceiveMarketingEmails(e.target.checked)}
+            />
+            <span>Quiero recibir novedades y promociones de VUELO por correo (opcional).</span>
+          </label>
+        )}
+
         <button disabled={sending || (mode === "register" && !acceptTerms)}>
           {sending
             ? "Procesando..."
@@ -877,6 +890,7 @@ function AuthScreen() {
           onClick={() => {
             setMsg("");
             setAcceptTerms(false);
+            setReceiveMarketingEmails(false);
             setMode(mode === "login" ? "register" : "login");
           }}
         >
