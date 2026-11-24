@@ -2327,6 +2327,18 @@ function EmailMarketingPreference({profile}){
  async function toggle(){setSaving(true);setMessage("");const {data,error}=await supabase.functions.invoke("vuelo-marketing-preferences",{body:{action:enabled?"unsubscribe":"subscribe",audience:"passenger"}});setSaving(false);if(error){setMessage("No pudimos guardar el cambio. Intentá nuevamente.");return;}setEnabled(!enabled);setMessage(data?.message||"Preferencia actualizada.");}
  return <div className="profile-section email-preference"><h2>Novedades de VUELO</h2><p>Recibí mensajes breves, promociones y novedades. Sin saturarte.</p><button type="button" onClick={toggle} disabled={loading||saving}>{loading?"Cargando…":saving?"Guardando…":enabled?"Dejar de recibir novedades":"Quiero recibir novedades"}</button>{message&&<small role="status">{message}</small>}<small>Podés cambiar esta preferencia cuando quieras.</small></div>
 }
+const STORE_CATEGORIES = [
+  "Alimentos y bebidas",
+  "Pulpería y supermercado",
+  "Farmacia y salud",
+  "Ropa y accesorios",
+  "Belleza y cuidado personal",
+  "Ferretería y hogar",
+  "Tecnología y electrónica",
+  "Otro"
+];
+const STORE_LOGO_EXTENSIONS = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
 function StoreApplication({ profile }) {
   const [application, setApplication] = useState(null);
   const [open, setOpen] = useState(false);
@@ -2335,21 +2347,26 @@ function StoreApplication({ profile }) {
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
   const [message, setMessage] = useState("");
+  const [logoFile, setLogoFile] = useState(null);
+  const [previousLogo, setPreviousLogo] = useState(null);
+  const uploadedLogo = useRef(null);
   const [form, setForm] = useState({
-    store_name: "", whatsapp: profile.phone || "", pickup_reference: "", pickup_lat: null, pickup_lng: null,
+    store_name: "", owner_name: "", whatsapp: profile.phone || "", address: "", business_category: "",
+    pickup_reference: "", pickup_lat: null, pickup_lng: null,
   });
 
   async function load() {
     setLoading(true);
     const { data, error } = await supabase.from("store_applications")
-      .select("id,store_name,whatsapp,pickup_reference,pickup_lat,pickup_lng,status")
+      .select("id,store_name,owner_name,whatsapp,address,business_category,logo_path,pickup_reference,pickup_lat,pickup_lng,status")
       .eq("applicant_id", profile.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
     setLoadFailed(Boolean(error));
     if (!error) {
       setApplication(data);
       if (data?.status === "rejected") {
-        const { store_name, whatsapp, pickup_reference, pickup_lat, pickup_lng } = data;
-        setForm({ store_name, whatsapp, pickup_reference, pickup_lat, pickup_lng });
+        const { store_name, owner_name, whatsapp, address, business_category, logo_path, pickup_reference, pickup_lat, pickup_lng } = data;
+        setForm({ store_name, owner_name: owner_name || "", whatsapp, address: address || "", business_category: business_category || "", pickup_reference, pickup_lat, pickup_lng });
+        setPreviousLogo(logo_path);
       }
     }
     setLoading(false);
@@ -2383,12 +2400,35 @@ function StoreApplication({ profile }) {
     );
   }
 
+  function selectLogo(event) {
+    const file = event.target.files?.[0];
+    setMessage("");
+    if (file && (!STORE_LOGO_EXTENSIONS[file.type] || file.size === 0 || file.size > 2 * 1024 * 1024)) {
+      event.target.value = "";
+      setLogoFile(null);
+      setMessage("Elegí un logo JPG, PNG o WebP de hasta 2 MB.");
+      return;
+    }
+    setLogoFile(file || null);
+  }
+
   async function submit(event) {
     event.preventDefault();
+    if (saving || locating) return;
     const storeName = form.store_name.trim();
+    const ownerName = form.owner_name.trim();
+    const address = form.address.trim();
     const whatsapp = form.whatsapp.trim().replace(/[().\s-]/g, "");
     if (storeName.length < 2 || !/^\+?[1-9]\d{7,14}$/.test(whatsapp)) {
       setMessage("Ingresá el nombre de la tienda y un WhatsApp válido.");
+      return;
+    }
+    if (ownerName.length < 2 || address.length < 5 || !STORE_CATEGORIES.includes(form.business_category)) {
+      setMessage("Completá el nombre del dueño, la dirección y el rubro.");
+      return;
+    }
+    if (!logoFile && !previousLogo) {
+      setMessage("Adjuntá el logo de tu tienda.");
       return;
     }
     if (form.pickup_lat == null || form.pickup_lng == null) {
@@ -2397,8 +2437,24 @@ function StoreApplication({ profile }) {
     }
     setSaving(true);
     setMessage("");
+    let logoPath = previousLogo;
+    if (logoFile) {
+      if (uploadedLogo.current?.file === logoFile) {
+        logoPath = uploadedLogo.current.path;
+      } else {
+        logoPath = `${profile.id}/${crypto.randomUUID()}.${STORE_LOGO_EXTENSIONS[logoFile.type]}`;
+        const { error: uploadError } = await supabase.storage.from("store-logos").upload(logoPath, logoFile);
+        if (uploadError) {
+          setSaving(false);
+          setMessage("No pudimos subir el logo. Revisá tu conexión e intentá de nuevo.");
+          return;
+        }
+        uploadedLogo.current = { file: logoFile, path: logoPath };
+      }
+    }
     const { data, error } = await supabase.from("store_applications").insert({
-      ...form, store_name: storeName, whatsapp, pickup_reference: form.pickup_reference.trim(),
+      ...form, store_name: storeName, owner_name: ownerName, whatsapp, address,
+      pickup_reference: form.pickup_reference.trim(), logo_path: logoPath,
     }).select("id,store_name,status").single();
     setSaving(false);
     if (error?.code === "23505") {
@@ -2450,8 +2506,21 @@ function StoreApplication({ profile }) {
           <p>La solicitud se vinculará a tu cuenta de VUELO.</p>
           <label htmlFor="store-name">Nombre de la tienda</label>
           <input id="store-name" value={form.store_name} onChange={(event) => setForm({ ...form, store_name: event.target.value })} minLength={2} maxLength={100} required />
+          <label htmlFor="store-logo">Logo de la tienda</label>
+          <input id="store-logo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="store-logo-hint"
+            onChange={selectLogo} required={!previousLogo && !logoFile} disabled={saving} />
+          <small id="store-logo-hint">{logoFile ? `Logo seleccionado: ${logoFile.name}` : (previousLogo ? "Podés conservar el logo anterior o subir otro. " : "") + "JPG, PNG o WebP, máximo 2 MB."}</small>
+          <label htmlFor="store-owner">Nombre completo del dueño del negocio</label>
+          <input id="store-owner" value={form.owner_name} onChange={(event) => setForm({ ...form, owner_name: event.target.value })} minLength={2} maxLength={120} required />
+          <label htmlFor="store-category">Rubro del negocio</label>
+          <select id="store-category" value={form.business_category} onChange={(event) => setForm({ ...form, business_category: event.target.value })} required>
+            <option value="" disabled>Seleccioná un rubro</option>
+            {STORE_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
           <label htmlFor="store-whatsapp">WhatsApp del negocio</label>
           <input id="store-whatsapp" type="tel" autoComplete="tel" value={form.whatsapp} onChange={(event) => setForm({ ...form, whatsapp: event.target.value })} maxLength={24} required />
+          <label htmlFor="store-address">Dirección del negocio</label>
+          <input id="store-address" autoComplete="street-address" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} minLength={5} maxLength={240} required />
           <RidePointPicker form={form} savePoint={savePickup}
             clearPoint={() => setForm({ ...form, pickup_lat: null, pickup_lng: null })}
             disabled={locating || saving} pickupOnly />
