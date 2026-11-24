@@ -1259,9 +1259,30 @@ function RequestRide({ profile, notify, onCreated }) {
   async function savePoint(field, lat, lng) {
     setCheckingPoint(true);
     try {
-      const { data, error } = await supabase.rpc("vuelo_in_ometepe", { lat, lng });
+      let validation = await supabase.rpc("vuelo_in_ometepe", { lat, lng });
+
+      // A tab left open can retain an expired access token. Refresh once and retry
+      // the protected validation instead of failing the map flow immediately.
+      const authFailure = (error) =>
+        error?.status === 401 ||
+        error?.code === "401" ||
+        /jwt.*expired|invalid jwt|unauthorized|not authenticated/i.test(error?.message || "");
+
+      if (validation.error && authFailure(validation.error)) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshed?.session) {
+          notify("Tu sesión venció. Volvé a iniciar sesión para validar el punto.");
+          return false;
+        }
+        validation = await supabase.rpc("vuelo_in_ometepe", { lat, lng });
+      }
+
+      const { data, error } = validation;
       if (error) {
-        notify("No pudimos validar el punto. Volvé a intentar.");
+        console.error("VUELO point validation failed:", error);
+        notify(authFailure(error)
+          ? "Tu sesión venció. Volvé a iniciar sesión e intentá nuevamente."
+          : "No pudimos validar el punto. Revisá tu conexión e intentá nuevamente.");
         return false;
       }
       if (!data) {
