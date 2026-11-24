@@ -1,7 +1,7 @@
 import logoVuelo from "./logoVuelo.png";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
-  ArrowRight,
+  ArrowRight,\n  Search,
   Bell,
   Bike,
   Car,
@@ -1113,17 +1113,45 @@ function Home({ profile, settings, adCard, goRequest, goOffers, notify }) {
   }
 
   return (
-    <section className="page">
-      <div className="welcome-card">
+    <section className="page passenger-home-page">
+      <div className="uber-home-heading">
         <div>
-          <span>Hola {firstName}</span>
-          <h1>¿A dónde vamos hoy?</h1>
-          <p>Elegí tu destino, seleccioná cómo viajar y acordá el precio con tu conductor.</p>
+          <span className="uber-home-greeting">Hola, {firstName} 👋</span>
+          <h1>¿A dónde vamos?</h1>
+          <p>Tu próximo viaje está a un toque.</p>
         </div>
-        <button onClick={goRequest}>
-          Pedir un viaje <ArrowRight size={18} />
+        <div className="uber-home-avatar"><MapPin size={24}/></div>
+      </div>
+
+      <button type="button" className="uber-destination-search" onClick={goRequest}>
+        <span className="uber-search-symbol"><Search size={22}/></span>
+        <span className="uber-search-copy"><strong>¿A dónde querés ir?</strong><small>Elegí tu destino y solicitá un viaje</small></span>
+        <ArrowRight size={20}/>
+      </button>
+
+      <div className="uber-ride-options" aria-label="Opciones de viaje">
+        <button type="button" className="uber-ride-option" onClick={goRequest}>
+          <span className="uber-option-illustration car"><Car size={31}/></span>
+          <strong>Vehículo</strong><small>Viajá con comodidad</small>
+        </button>
+        <button type="button" className="uber-ride-option" onClick={goRequest}>
+          <span className="uber-option-illustration moto"><Bike size={31}/></span>
+          <strong>Motocicleta</strong><small>Práctica y rápida</small>
         </button>
       </div>
+
+      <section className="rental-coming-soon" aria-label="Alquiler próximamente">
+        <div className="rental-coming-copy">
+          <span className="rental-soon-pill"><Clock size={13}/> PRÓXIMAMENTE</span>
+          <h2>¿Preferís manejar vos?</h2>
+          <p>Muy pronto vas a poder alquilar vehículos y motocicletas desde VUELO.</p>
+          <span className="rental-coming-link">Alquiler de vehículos y motos <ArrowRight size={16}/></span>
+        </div>
+        <div className="rental-coming-art" aria-hidden="true">
+          <span className="rental-car-icon"><Car size={39}/></span>
+          <span className="rental-bike-icon"><Bike size={30}/></span>
+        </div>
+      </section>
 
       <InstallReminder notify={notify} />
 
