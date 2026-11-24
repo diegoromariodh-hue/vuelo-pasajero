@@ -865,3 +865,40 @@ body{background:#f5faf6;color:#17372a}
  .app .card-actions>*,.app .button-group>*,.app .form-actions>*{flex-basis:100%}
  .app .action-grid,.app .status-flow,.app .emergency-actions{gap:10px}
 }
+
+
+/* Notification center: clear unread states and comfortable mobile targets */
+.app .notification-panel{margin:14px auto 18px}
+.app .notification-drawer{overflow:hidden;background:#fff;border:1px solid #d8e7dd;border-radius:18px;box-shadow:0 5px 18px rgba(9,68,43,.06)}
+.app .notification-summary{display:flex;align-items:center;gap:12px;min-height:66px;padding:13px 16px;cursor:pointer;list-style:none}
+.app .notification-summary::-webkit-details-marker{display:none}
+.app .notification-summary-main{display:grid;gap:3px;min-width:0;flex:1}
+.app .notification-summary-main strong{font-size:.96rem;color:#17372a}
+.app .notification-summary-main small{font-size:.78rem;color:#607368}
+.app .notification-count{display:grid;place-items:center;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:#f04438;color:#fff;font-size:.8rem;font-weight:900}
+.app .notification-count:empty{display:none}
+.app .notification-chevron{color:#607368;font-size:1.25rem;transition:transform .16s ease}
+.app .notification-drawer[open] .notification-chevron{transform:rotate(180deg)}
+.app .notification-content{padding:0 14px 12px}
+.app .notification-item{display:flex;align-items:flex-start;gap:10px;padding:13px 2px;border-top:1px solid #edf2ee;min-width:0}
+.app .notification-item.is-unread{background:linear-gradient(90deg,#f1f8f3,transparent);margin:0 -6px;padding:13px 8px;border-radius:12px}
+.app .notification-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;margin-top:6px;background:#f04438}
+.app .notification-dot.is-read{background:#cbd5cf}
+.app .notification-item-copy{flex:1;min-width:0}
+.app .notification-item-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.app .notification-item-heading strong{font-size:.88rem;line-height:1.35;color:#17372a}
+.app .notification-new{font-size:.68rem;font-weight:900;color:#c9362d;background:#fff0ed;border-radius:999px;padding:3px 7px}
+.app .notification-item-copy p{margin:4px 0;color:#607368;font-size:.82rem;line-height:1.45;overflow-wrap:anywhere}
+.app .notification-item-copy>small{font-size:.72rem;color:#829187}
+.app .notification-action{flex:0 0 auto;align-self:center;min-height:40px;border:1px solid #cfe2d5;border-radius:11px;padding:8px 11px;background:#e8f7ee;color:#075c38;font-size:.76rem;font-weight:850;white-space:nowrap}
+.app .notification-error{padding:10px 12px;border-radius:12px;background:#fff0ed;color:#b7352d;font-size:.82rem}
+.app .notification-empty{margin:0;padding:14px 4px;color:#607368;font-size:.84rem;line-height:1.5}
+@media(max-width:560px){
+ .app .notification-panel{width:calc(100% - 24px);margin:12px auto}
+ .app .notification-summary{min-height:60px;padding:11px 13px}
+ .app .notification-content{padding:0 10px 10px}
+ .app .notification-item{gap:8px;flex-wrap:wrap}
+ .app .notification-item-copy{flex-basis:calc(100% - 20px)}
+ .app .notification-action{margin-left:18px;min-height:42px;flex:1 1 auto}
+}
+@media(prefers-reduced-motion:reduce){.app .notification-chevron{transition:none}}
