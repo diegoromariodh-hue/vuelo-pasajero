@@ -1816,17 +1816,9 @@ function Offers({ notify, userId }) {
     const confirmCancel = window.confirm("¿Querés cancelar la búsqueda de conductor? Podés hacerlo mientras todavía no hayas aceptado una oferta.");
     if (!confirmCancel) return;
 
-    const { data: cancelled, error } = await supabase
-      .from("rides")
-      .update({
-        status: "cancelled",
-        cancelled_at: new Date().toISOString(),
-        cancellation_reason: "Cancelado por el pasajero antes de aceptar una oferta",
-      })
-      .eq("id", selectedRide.id)
-      .in("status", ["searching", "negotiating"])
-      .select("id")
-      .maybeSingle();
+    const { data: cancelled, error } = await supabase.rpc("vuelo_cancel_own_ride", {
+      p_ride_id: selectedRide.id,
+    });
 
     if (error) {
       alert(error.message);
@@ -1838,15 +1830,15 @@ function Offers({ notify, userId }) {
   }
 
   async function rejectOffer(offer) {
-    const { error } = await supabase.from("ride_offers")
-      .update({ status: "rejected" }).eq("id", offer.id).eq("status", "pending");
+    const { data: rejected, error } = await supabase.rpc("vuelo_reject_own_offer", {
+      p_offer_id: offer.id,
+    });
     if (error) notify(error.message);
     await loadMyRides();
   }
 
   async function confirmOffer(offer) {
     if (isOfferExpired(offer)) {
-      await supabase.from("ride_offers").update({ status: "expired" }).eq("id", offer.id);
       notify("Esta oferta ya expiró. Espera una nueva oferta del conductor.");
       loadMyRides();
       return;
