@@ -902,3 +902,36 @@ body{background:#f5faf6;color:#17372a}
  .app .notification-action{margin-left:18px;min-height:42px;flex:1 1 auto}
 }
 @media(prefers-reduced-motion:reduce){.app .notification-chevron{transition:none}}
+
+
+/* UX refinement: consistent controls, compact cards and accessible focus */
+.app button:focus-visible,.app a:focus-visible,.app input:focus-visible,.app textarea:focus-visible,.app select:focus-visible{outline:2px solid #087a4b;outline-offset:3px}
+.app button:disabled{cursor:not-allowed;opacity:.65}
+.app .notification-content{max-height:min(52dvh,420px);overflow-y:auto;overscroll-behavior:contain}
+.app .notification-item-copy>small{color:#526b5d}
+.app .notification-summary{min-height:54px}
+.app .toast{font-weight:650;line-height:1.45;padding:12px 16px;border-radius:14px}
+.app .ride-chat{display:grid;gap:12px;text-align:left}
+.app .ride-chat h3{margin:0}
+.app .ride-chat-log{display:flex;flex-direction:column;gap:8px;list-style:none;padding:12px;margin:0;max-height:320px;overflow-y:auto;background:#f0f5f2;border-radius:14px;overscroll-behavior:contain}
+.app .ride-chat-bubble{align-self:flex-start;max-width:85%;padding:10px 12px;background:#fff;border:1px solid #dce8df;border-radius:14px 14px 14px 4px;overflow-wrap:anywhere;white-space:pre-wrap;font-size:.9rem;line-height:1.45}
+.app .ride-chat-bubble.mine{align-self:flex-end;background:#dff5ec;border-radius:14px 14px 4px 14px}
+.app .ride-chat-bubble strong,.app .ride-chat-bubble time{display:block;font-size:.72rem;color:#486454;font-weight:600}
+.app .ride-chat-bubble time{text-align:right;margin-top:4px}
+.app .ride-chat form{display:grid;gap:10px}
+.app .ride-chat-quick{display:flex;flex-wrap:wrap;gap:6px}
+.app .ride-chat-quick button{width:auto;min-height:40px;margin:0;padding:7px 10px;border:1px solid #c4dacf;background:#fff;color:#075c38;border-radius:999px;font-size:.78rem;font-weight:650}
+.app .ride-chat textarea{min-height:76px;resize:vertical;margin:0}
+.app .ride-chat .send-rating-btn{margin:0;min-height:46px}
+@media(max-width:560px){.app .ride-chat-log{max-height:42dvh}.app .ride-chat-bubble{max-width:90%}.app .bottom-nav button{min-width:0;font-size:clamp(.65rem,2.6vw,.78rem)}}
+
+.app .ride-wizard-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px;margin-top:18px;align-items:stretch}
+.app .ride-wizard-actions>button{width:100%;min-height:48px;margin:0!important;border-radius:12px;font-weight:750}
+.app .ride-wizard-actions>button:only-child{grid-column:1/-1}
+.app .ride-wizard-actions>.ride-wizard-back{background:#fff!important;color:#075c38!important;border:1px solid #b8d0c2!important;box-shadow:none!important}
+.app .ride-wizard-actions>.ride-wizard-next,.app .ride-wizard-actions>button[type=submit]{background:#075c38;color:#fff}
+.app .ride-request-group{padding:clamp(12px,3vw,18px);margin:10px 0;border-radius:16px}
+.app .ride-request-group .ride-request-choice{margin:10px 0;padding:10px;border:1px solid #dce9e0;border-radius:12px}
+.app .ride-request-choice legend{padding:0 5px}
+.app .ride-request-options{gap:8px}
+@media(max-width:360px){.app .ride-wizard-actions{gap:8px;grid-template-columns:1fr 1.6fr}}
