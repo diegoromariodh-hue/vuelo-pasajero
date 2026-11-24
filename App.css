@@ -984,3 +984,56 @@ body{background:#f5faf6;color:#17372a}
 }
 .delivery-map-pin--destination { background: #b42318; }
 .delivery-map-pin--candidate { background: #92400e; }
+
+
+/* VUELO Passenger Home — Uber-inspired destination-first experience */
+.passenger-home-page{width:min(720px,calc(100% - 32px));margin:clamp(22px,4vw,38px) auto 112px;display:grid;gap:17px}
+.uber-home-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:4px 2px 2px}
+.uber-home-greeting{display:block;color:#087a4b;font-size:.92rem;font-weight:850;letter-spacing:.01em}
+.uber-home-heading h1{margin:7px 0 5px;color:#17372a;font-size:clamp(2.15rem,6vw,3.1rem);font-weight:950;letter-spacing:-.075em;line-height:1}
+.uber-home-heading p{margin:0;color:#607368;font-size:.96rem}
+.uber-home-avatar{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:17px;background:#e8f7ee;color:#087a4b}
+.uber-destination-search{width:100%;min-height:82px;display:flex;align-items:center;gap:14px;padding:14px 17px;border:1.5px solid #e1eae3;border-radius:18px;background:#f4f7f5;color:#17372a;text-align:left;box-shadow:0 4px 0 #e8eee9;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.uber-destination-search:hover{transform:translateY(-2px);border-color:#a9d4b7;box-shadow:0 6px 0 #e1eee5}
+.uber-search-symbol{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:13px;background:#17372a;color:#fff}
+.uber-search-copy{display:grid;gap:4px;flex:1;min-width:0}
+.uber-search-copy strong{font-size:1.02rem;font-weight:900;color:#17372a}
+.uber-search-copy small{font-size:.8rem;color:#607368}
+.uber-destination-search>svg{color:#087a4b}
+.uber-ride-options{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.uber-ride-option{display:grid;justify-items:start;gap:7px;min-width:0;padding:17px;border:1.5px solid #e1eae3;border-radius:18px;background:#fff;color:#17372a;text-align:left;box-shadow:0 4px 0 #edf2ee;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.uber-ride-option:hover{transform:translateY(-3px);border-color:#a7d5b6;box-shadow:0 7px 0 #e7f0e9}
+.uber-option-illustration{width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:#e8f7ee;color:#087a4b}
+.uber-option-illustration.moto{background:#fff0ed;color:#e04439}
+.uber-ride-option strong{font-size:.98rem;font-weight:900}
+.uber-ride-option small{font-size:.78rem;color:#607368}
+.rental-coming-soon{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:175px;overflow:hidden;padding:20px 21px;border:1.5px solid #f0d8d3;border-radius:21px;background:linear-gradient(115deg,#fff6f3 0%,#fff 68%);box-shadow:0 5px 0 #f8eeeb}
+.rental-coming-copy{position:relative;z-index:1;max-width:390px}
+.rental-soon-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:999px;background:#ffe8e3;color:#c94338;font-size:.67rem;font-weight:950;letter-spacing:.07em}
+.rental-coming-copy h2{margin:12px 0 6px;color:#17372a;font-size:clamp(1.2rem,3.5vw,1.55rem);font-weight:950;letter-spacing:-.05em}
+.rental-coming-copy p{max-width:360px;margin:0;color:#607368;font-size:.85rem;line-height:1.5}
+.rental-coming-link{display:inline-flex;align-items:center;gap:7px;margin-top:12px;color:#d94338;font-size:.8rem;font-weight:900}
+.rental-coming-art{position:relative;flex:0 0 140px;height:115px}
+.rental-car-icon,.rental-bike-icon{position:absolute;display:grid;place-items:center;border:1px solid #f1d7d1;border-radius:20px;background:#fff;color:#e04439;box-shadow:0 7px 20px #9e4b3b12}
+.rental-car-icon{width:82px;height:82px;right:0;top:0;transform:rotate(7deg)}
+.rental-bike-icon{width:65px;height:65px;left:0;bottom:0;background:#e8f7ee;border-color:#cce8d5;color:#087a4b;transform:rotate(-8deg)}
+@media(max-width:560px){
+ .passenger-home-page{width:calc(100% - 24px);margin:18px auto 108px;gap:14px}
+ .uber-home-heading h1{font-size:2.35rem}
+ .uber-home-avatar{width:43px;height:43px;flex-basis:43px;border-radius:15px}
+ .uber-destination-search{min-height:76px;padding:12px 13px;gap:11px}
+ .uber-search-copy strong{font-size:.94rem}
+ .uber-search-copy small{font-size:.74rem}
+ .uber-ride-options{gap:10px}
+ .uber-ride-option{padding:14px 12px;gap:6px}
+ .uber-option-illustration{width:48px;height:48px}
+ .rental-coming-soon{min-height:158px;padding:16px 14px}
+ .rental-coming-art{flex-basis:94px;height:104px}
+ .rental-car-icon{width:65px;height:65px;border-radius:17px}
+ .rental-bike-icon{width:51px;height:51px;border-radius:15px}
+ .rental-car-icon svg{width:32px;height:32px}
+ .rental-bike-icon svg{width:25px;height:25px}
+ .rental-coming-copy p{font-size:.78rem;max-width:245px}
+ .rental-coming-link{font-size:.72rem}
+}
+@media(prefers-reduced-motion:reduce){.uber-destination-search,.uber-ride-option{transition:none}}
