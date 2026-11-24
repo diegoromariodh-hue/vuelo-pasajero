@@ -1326,12 +1326,12 @@ function RequestRide({ profile, notify, onCreated }) {
 
   function goToStep(next) {
     if (next === 2) {
-      if (!hasPickupPoint && !form.pickup_address.trim()) {
-        notify("Indicá dónde te recogemos: escribí una dirección o marcá el punto A en el mapa.");
+      if (!hasPickupPoint) {
+        notify("Marcá el punto A de recogida en el mapa para guardar su ubicación exacta.");
         return;
       }
-      if (!hasDestinationPoint && !form.destination_address.trim()) {
-        notify("Indicá tu destino: escribí una dirección o marcá el punto B en el mapa.");
+      if (!hasDestinationPoint) {
+        notify("Marcá el punto B de destino en el mapa para guardar su ubicación exacta.");
         return;
       }
       if (!isOmetepe) {
@@ -1406,18 +1406,12 @@ function RequestRide({ profile, notify, onCreated }) {
 
     if (gettingGps || checkingPoint) return;
 
-    if ((!hasPickupPoint && !form.pickup_address.trim()) || (!hasDestinationPoint && !form.destination_address.trim()) || !isOmetepe) {
-      alert("Lo sentimos. Aún no contamos con conductores disponibles en esta zona. Gracias por confiar en Vuelo. Estamos construyendo esta plataforma junto a nuestra comunidad para llegar cada vez a más personas.");
+    if (!isOmetepe) {
+      alert("Lo sentimos. Aún no contamos con conductores disponibles en esta zona. Gracias por confiar en Vuelo.");
       return;
     }
-
-    if (!hasPickupPoint && !form.pickup_address.trim()) {
-      alert("Marcá el punto A o escribí la dirección de recogida.");
-      return;
-    }
-
-    if (!hasDestinationPoint && !form.destination_address.trim()) {
-      alert("Marcá el punto B o escribí la dirección de destino.");
+    if (!hasPickupPoint || !hasDestinationPoint) {
+      alert("Para enviar la solicitud, marcá los dos puntos en el mapa: A para recogida y B para destino.");
       return;
     }
 
@@ -1466,7 +1460,7 @@ function RequestRide({ profile, notify, onCreated }) {
         destination_lng: form.destination_lng,
         destination_reference: form.destination_reference || null,
         requested_departure_at: departure.value,
-        passenger_count: form.vehicle_type_requested === "car" ? Number(form.passenger_count) : null,
+        passenger_count: form.vehicle_type_requested === "car" ? Number(form.passenger_count) : 1,
         passenger_offer: Number(form.passenger_offer),
         passenger_notes: `${form.pickup_reference ? "Referencia de recogida: " + form.pickup_reference + ". " : ""}${passengerInfo}${departure.label ? "Tipo: " + departure.label + ". " : ""}${form.passenger_notes || ""}`,
         status: "searching",
