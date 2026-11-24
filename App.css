@@ -848,18 +848,20 @@ body{background:#f5faf6;color:#17372a}
  .app .profile-driver-copy strong{font-size:.88rem}
 }
 
-/* Global action spacing: avoid touching/overlapping buttons in cards and forms */
+/* Global action spacing: keep each existing layout while separating controls */
 .app button,.app a[role="button"]{line-height:1.35}
 .app button:not(.icon-btn):not(.install-close):not(.profile-avatar-edit){max-width:100%}
-.app .row-actions,.app .action-grid,.app .status-flow,.app .emergency-actions,.app .install-actions,.app .offer-actions{
+.app .row-actions,.app .install-actions,.app .offer-actions{
  display:flex;flex-wrap:wrap;align-items:stretch;gap:12px
 }
-.app .row-actions>* ,.app .action-grid>* ,.app .status-flow>* ,.app .emergency-actions>* ,.app .install-actions>* ,.app .offer-actions>*{min-width:0}
-.app .row-actions button,.app .action-grid button,.app .status-flow button,.app .emergency-actions a,.app .install-actions button,.app .offer-actions button{margin:0}
+.app .row-actions>*,.app .install-actions>*,.app .offer-actions>*{min-width:0}
+.app .row-actions button,.app .install-actions button,.app .offer-actions button{margin:0}
+.app .action-grid,.app .status-flow,.app .emergency-actions{gap:12px}
 .app .card-actions,.app .button-group,.app .form-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:14px}
-.app .card-actions>* ,.app .button-group>* ,.app .form-actions>*{flex:1 1 150px;min-width:0}
-.app .profile-page .profile-driver-cta{margin:0}
+.app .card-actions>*,.app .button-group>*,.app .form-actions>*{flex:1 1 150px;min-width:0}
 @media(max-width:560px){
- .app .row-actions,.app .action-grid,.app .status-flow,.app .emergency-actions,.app .install-actions,.app .offer-actions,.app .card-actions,.app .button-group,.app .form-actions{gap:10px}
- .app .row-actions>* ,.app .action-grid>* ,.app .status-flow>* ,.app .emergency-actions>* ,.app .install-actions>* ,.app .offer-actions>*{flex:1 1 100%}
+ .app .row-actions,.app .install-actions,.app .offer-actions,.app .card-actions,.app .button-group,.app .form-actions{gap:10px}
+ .app .row-actions>*,.app .install-actions>*,.app .offer-actions>*{flex:1 1 100%}
+ .app .card-actions>*,.app .button-group>*,.app .form-actions>*{flex-basis:100%}
+ .app .action-grid,.app .status-flow,.app .emergency-actions{gap:10px}
 }
