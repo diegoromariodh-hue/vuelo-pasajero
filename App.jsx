@@ -297,6 +297,29 @@ function RideChat({ rideId, userId }) {
   const [readError,setReadError]=useState(false);
   const [sendError,setSendError]=useState("");
   const pending=React.useRef(null);
+  const logRef=React.useRef(null);
+  const nearEnd=React.useRef(true);
+  const lastSeen=React.useRef(null);
+  const [newCount,setNewCount]=useState(0);
+  useEffect(()=>{nearEnd.current=true;lastSeen.current=null;setNewCount(0);},[rideId]);
+  useEffect(()=>{
+    const log=logRef.current;
+    if(!log || !messages.length) return;
+    const latest=messages[messages.length-1];
+    if(nearEnd.current || latest.sender_id===userId){
+      log.scrollTop=log.scrollHeight;
+      setNewCount(0);
+    }else if(lastSeen.current && latest.id!==lastSeen.current){
+      const index=messages.findIndex(item=>item.id===lastSeen.current);
+      setNewCount(count=>count+messages.slice(index+1).filter(item=>item.sender_id!==userId).length);
+    }
+    lastSeen.current=latest.id;
+  },[messages,userId]);
+  function jumpToLatest(){
+    nearEnd.current=true;
+    if(logRef.current) logRef.current.scrollTop=logRef.current.scrollHeight;
+    setNewCount(0);
+  }
 
   useEffect(()=>{
     let active=true;
@@ -350,13 +373,14 @@ function RideChat({ rideId, userId }) {
     <h3>Chat del viaje</h3>
     {readError && <p role="status">No pudimos actualizar el chat.</p>}
     {messages.length===0 && !readError && <p>Usá este chat para coordinar la recogida.</p>}
-    {messages.length>0 && <ul role="log" aria-label="Mensajes" className="ride-chat-log">
+    {messages.length>0 && <ul role="log" aria-label="Mensajes" className="ride-chat-log" ref={logRef} onScroll={()=>{const el=logRef.current;if(!el)return;nearEnd.current=el.scrollHeight-el.scrollTop-el.clientHeight<48;if(nearEnd.current)setNewCount(0);}}>
       {messages.map((item)=><li key={item.id} className={"ride-chat-bubble"+(item.sender_id===userId?" mine":"")}>
         <strong>{item.sender_id===userId?"Vos":"Conductor"}</strong>
         <div>{item.message}</div>
         {item.created_at && <time dateTime={item.created_at}>{new Date(item.created_at).toLocaleTimeString("es-NI",{hour:"numeric",minute:"2-digit"})}</time>}
       </li>)}
     </ul>}
+    {newCount>0 && <button type="button" className="ride-chat-latest" onClick={jumpToLatest}>Ver mensajes nuevos ({newCount}) ↓</button>}
     <form onSubmit={send}>
       <div className="ride-chat-quick">
         {["Estoy en el punto","Te espero en…","¿Dónde estás?"].map((message)=><button key={message} type="button" disabled={sending}
@@ -377,6 +401,7 @@ function NotificationInbox({userId,onNavigate}) {
   const [items,setItems]=useState([]);
   const [errorText,setErrorText]=useState("");
   const [loading,setLoading]=useState(true);
+  const [onlyUnread,setOnlyUnread]=useState(false);
   useEffect(()=>{
     let active=true;
     let request=0;
@@ -414,7 +439,9 @@ function NotificationInbox({userId,onNavigate}) {
     if(destination) onNavigate(destination);
   }
 
-  const unread=items.filter(item=>!item.read_at);
+  const uniqueItems=Array.from(new Map(items.map(item=>[item.id,item])).values());
+  const unread=uniqueItems.filter(item=>!item.read_at);
+  const visibleItems=onlyUnread?unread:uniqueItems;
   return <section className="page notification-panel" aria-label="Centro de notificaciones">
     <details className="notification-drawer">
       <summary className="notification-summary">
@@ -426,7 +453,9 @@ function NotificationInbox({userId,onNavigate}) {
         {errorText && <p className="notification-error" role="alert">{errorText}</p>}
         {loading && !items.length && <p className="notification-empty">Cargando notificaciones…</p>}
         {!loading && !items.length && !errorText && <p className="notification-empty">Todavía no tenés avisos. Te mostraremos aquí las novedades de tus viajes.</p>}
-        {items.map(item=><article className={"notification-item"+(!item.read_at?" is-unread":"")} key={item.id}>
+        {items.length>0 && <div className="notification-filters"><button type="button" aria-pressed={!onlyUnread} onClick={()=>setOnlyUnread(false)}>Todos</button><button type="button" aria-pressed={onlyUnread} onClick={()=>setOnlyUnread(true)}>Sin leer ({unread.length})</button></div>}
+        {onlyUnread && !unread.length && items.length>0 && <p className="notification-empty">No tenés avisos pendientes.</p>}
+        {visibleItems.map(item=><article className={"notification-item"+(!item.read_at?" is-unread":"")} key={item.id}>
           <span className={"notification-dot "+(item.read_at?"is-read":"")} aria-hidden="true"/>
           <div className="notification-item-copy">
             <div className="notification-item-heading"><strong>{item.title}</strong>{!item.read_at&&<span className="notification-new">Nuevo</span>}</div>
