@@ -418,7 +418,7 @@ function NotificationInbox({userId,onNavigate}) {
     <details className="notification-drawer">
       <summary className="notification-summary">
         <span className="notification-summary-main"><strong>Notificaciones</strong><small>{loading?"Actualizando avisos":unread.length?unread.length+" sin leer":"Estás al día"}</small></span>
-        <span className="notification-count" aria-label={unread.length+" notificaciones sin leer"}>{unread.length}</span>
+        <span className="notification-count" aria-label={unread.length+" notificaciones sin leer"}>{unread.length || ""}</span>
         <span className="notification-chevron" aria-hidden="true">⌄</span>
       </summary>
       <div className="notification-content" aria-live="polite">
